@@ -6,7 +6,7 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/d
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-local version = "1.2.0"
+local version = "1.2.1"
 local gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
 
 local Window = Library:CreateWindow({
