@@ -1,4 +1,4 @@
--- hey
+-- hey v2
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -27,10 +27,12 @@ local Tabs = {
 	Main = Window:AddTab("Main", "user"),
 	Visuals = Window:AddTab("Visuals", "eye"),
 	Features = Window:AddTab("Features", "bug"),
+	["FE Stuff"] = Window:AddTab("FE Stuff", "zap"),
 	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
 
--- Fixed Roblox service capitalization
+local debugmode = isfile("debugtrue")
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -113,6 +115,60 @@ local fovlockdistance = 1000
 local rainbowfov = false
 local aimlockcertainplayer = false
 local selectedplayer = nil
+
+local animationspeed = 1
+local selectedanimation = ""
+local loopanimation = false
+local animationids = {
+	["Dance (R15)"] = "507766388",
+	["Zombie (R15)"] = "616158929", 
+	["Sit (R15)"] = "2506281703",
+	["Salute (R15)"] = "582855105",
+	["Bang (R6)"] = "148840371",
+	["Jerk (R6)"] = "72042024", 
+	["Lay (R6)"] = "282574440"
+}
+
+local function playanimation(animid)
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		local humanoid = LocalPlayer.Character.Humanoid
+		local animator = humanoid:FindFirstChild("Animator")
+		if animator then
+			local animationobject = Instance.new("Animation")
+			animationobject.AnimationId = "rbxassetid://" .. animid
+			local animtrack = animator:LoadAnimation(animationobject)
+			animtrack:Play()
+			animtrack:AdjustSpeed(animationspeed)
+			if loopanimation then
+				animtrack.Looped = true
+			else
+				animtrack.Ended:Connect(function()
+					if Toggles.PlayAnimation then
+						Toggles.PlayAnimation:SetValue(false)
+					end
+					if Toggles.PlayCustomAnimation then
+						Toggles.PlayCustomAnimation:SetValue(false)
+					end
+				end)
+			end
+		end
+	end
+end
+
+local function stopanimation()
+	local character = Players.LocalPlayer.Character
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+				track:Stop()
+			end
+			if debugmode then
+				print("[DEBUG]: All animations stopped")
+			end
+		end
+	end
+end
 
 local function getrainbowcolor()
 	local currenttime = tick()
@@ -496,7 +552,6 @@ end
 
 local playergroup = Tabs.Main:AddLeftGroupbox("Player", "user")
 
--- Added variables to track slider values and continuous application
 local currentwalkspeed = 16
 local currentjumppower = 50
 local currentgravity = 196.2
@@ -676,15 +731,287 @@ playergroup:AddCheckbox("InfiniteJump", {
 	end,
 })
 
+local UserInputService = game:GetService("UserInputService")
+
+local flygroup = Tabs.Main:AddRightGroupbox("Fly", "plane")
+
+local flySpeed = 1
+local nowe = false
+local tpwalking = false
+local speeds = 1
+
+local function startFlying()
+	if nowe == true then return end
+	
+	nowe = true
+	local player = Players.LocalPlayer
+	local character = player.Character
+	if not character then return end
+	
+	for i = 1, speeds do
+		spawn(function()
+			local hb = RunService.Heartbeat
+			tpwalking = true
+			local chr = player.Character
+			local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+			while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+				if hum.MoveDirection.Magnitude > 0 then
+					chr:TranslateBy(hum.MoveDirection)
+				end
+			end
+		end)
+	end
+	
+	character.Animate.Disabled = true
+	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
+	for i,v in next, humanoid:GetPlayingAnimationTracks() do
+		v:AdjustSpeed(0)
+	end
+	
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+	humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+	
+	if humanoid.RigType == Enum.HumanoidRigType.R6 then
+		local torso = character.Torso
+		local ctrl = {f = 0, b = 0, l = 0, r = 0}
+		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+		local maxspeed = 50
+		local speed = 0
+		
+		local bg = Instance.new("BodyGyro", torso)
+		bg.P = 9e4
+		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+		bg.cframe = torso.CFrame
+		
+		local bv = Instance.new("BodyVelocity", torso)
+		bv.velocity = Vector3.new(0,0.1,0)
+		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		
+		humanoid.PlatformStand = true
+		
+		spawn(function()
+			while nowe == true and humanoid.Health > 0 do
+				RunService.RenderStepped:Wait()
+				
+				local moveVector = humanoid.MoveDirection
+				if moveVector.Magnitude > 0 then
+					ctrl.f = moveVector.Z < 0 and 1 or 0
+					ctrl.b = moveVector.Z > 0 and 1 or 0
+					ctrl.l = moveVector.X < 0 and 1 or 0
+					ctrl.r = moveVector.X > 0 and 1 or 0
+				else
+					ctrl = {f = 0, b = 0, l = 0, r = 0}
+				end
+				
+				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+					speed = speed+.5+(speed/maxspeed)
+					if speed > maxspeed then
+						speed = maxspeed
+					end
+				elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+					speed = speed-1
+					if speed < 0 then
+						speed = 0
+					end
+				end
+				
+				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+				elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+				else
+					bv.velocity = Vector3.new(0,0,0)
+				end
+				
+				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+			end
+			
+			bg:Destroy()
+			bv:Destroy()
+			humanoid.PlatformStand = false
+			character.Animate.Disabled = false
+			tpwalking = false
+		end)
+	else
+		local upperTorso = character.UpperTorso
+		local ctrl = {f = 0, b = 0, l = 0, r = 0}
+		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+		local maxspeed = 50
+		local speed = 0
+		
+		local bg = Instance.new("BodyGyro", upperTorso)
+		bg.P = 9e4
+		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+		bg.cframe = upperTorso.CFrame
+		
+		local bv = Instance.new("BodyVelocity", upperTorso)
+		bv.velocity = Vector3.new(0,0.1,0)
+		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		
+		humanoid.PlatformStand = true
+		
+		spawn(function()
+			while nowe == true and humanoid.Health > 0 do
+				wait()
+				
+				local moveVector = humanoid.MoveDirection
+				if moveVector.Magnitude > 0 then
+					ctrl.f = moveVector.Z < 0 and 1 or 0
+					ctrl.b = moveVector.Z > 0 and 1 or 0
+					ctrl.l = moveVector.X < 0 and 1 or 0
+					ctrl.r = moveVector.X > 0 and 1 or 0
+				else
+					ctrl = {f = 0, b = 0, l = 0, r = 0}
+				end
+				
+				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+					speed = speed+.5+(speed/maxspeed)
+					if speed > maxspeed then
+						speed = maxspeed
+					end
+				elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+					speed = speed-1
+					if speed < 0 then
+						speed = 0
+					end
+				end
+				
+				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+				elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+				else
+					bv.velocity = Vector3.new(0,0,0)
+				end
+				
+				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+			end
+			
+			bg:Destroy()
+			bv:Destroy()
+			humanoid.PlatformStand = false
+			character.Animate.Disabled = false
+			tpwalking = false
+		end)
+	end
+end
+
+local function stopFlying()
+	if nowe == false then return end
+	
+	nowe = false
+	tpwalking = false
+	local player = Players.LocalPlayer
+	local character = player.Character
+	if not character then return end
+	
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,true)
+	humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
+	humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+end
+
+flygroup:AddToggle("FlyToggle", {
+	Text = "Fly",
+	Default = false,
+	Callback = function(Value)
+		if debugmode then
+			print("[DEBUG]: Fly Toggle " .. (Value and "On" or "Off"))
+		end
+		
+		if Value then
+			startFlying()
+		else
+			stopFlying()
+		end
+	end,
+}):AddKeyPicker("FlyKeybind", {
+	Default = "F",
+	Text = "Fly Keybind",
+	SyncToggleState = true,
+})
+
+flygroup:AddSlider("FlySpeed", {
+	Text = "Fly Speed",
+	Default = 1,
+	Min = 1,
+	Max = 100,
+	Rounding = 0,
+	Callback = function(Value)
+		speeds = Value
+		flySpeed = Value
+		if debugmode then
+			print("[DEBUG]: Fly Speed set to " .. Value)
+		end
+		
+		if nowe == true then
+			tpwalking = false
+			for i = 1, speeds do
+				spawn(function()
+					local hb = RunService.Heartbeat
+					tpwalking = true
+					local chr = Players.LocalPlayer.Character
+					local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+					while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+						if hum.MoveDirection.Magnitude > 0 then
+							chr:TranslateBy(hum.MoveDirection)
+						end
+					end
+				end)
+			end
+		end
+	end,
+})
+
+Players.LocalPlayer.CharacterAdded:Connect(function(character)
+	wait(0.7)
+	nowe = false
+	tpwalking = false
+	if character:FindFirstChildOfClass("Humanoid") then
+		character:FindFirstChildOfClass("Humanoid").PlatformStand = false
+		if character:FindFirstChild("Animate") then
+			character.Animate.Disabled = false
+		end
+	end
+end)
+
+-- Fixed status group by removing duplicate ping label and divider
 local statusgroup = Tabs.Main:AddLeftGroupbox("Status", "activity")
 
 local fpslabel = statusgroup:AddLabel("FPS: 0")
 local pinglabel = statusgroup:AddLabel("PING: 0")
 local versionlabel = statusgroup:AddLabel("UNXHub Ver.: " .. version)
-
-statusgroup:AddDivider()
-
-local pinglabel2 = statusgroup:AddLabel("PING: 0")
 
 spawn(function()
 	while true do
@@ -698,7 +1025,6 @@ spawn(function()
 	while true do
 		local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
 		pinglabel:SetText("PING: " .. ping)
-		pinglabel2:SetText("PING: " .. ping)
 		wait(0.001)
 	end
 end)
@@ -721,7 +1047,6 @@ othergroup:AddButton({
 	end,
 })
 
--- Added divider and reset buttons
 othergroup:AddDivider()
 
 othergroup:AddButton({
@@ -940,7 +1265,6 @@ configtab:AddSlider("RainbowSpeed", {
 
 local gamegroup = Tabs.Visuals:AddRightGroupbox("Game", "gamepad-2")
 
--- Added Field of View slider above Full Bright
 gamegroup:AddSlider("FieldOfView", {
 	Text = "Field of View",
 	Default = 70,
@@ -1030,35 +1354,24 @@ gamegroup:AddCheckbox("AntiLag", {
 
 local teleportgroup = Tabs.Features:AddLeftGroupbox("Teleport", "zap")
 
-local playerlist = {}
-
-local function updateplayerlist()
-	playerlist = {}
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			table.insert(playerlist, player.Name)
-		end
-	end
-	Options.TeleportPlayer:SetValues(playerlist)
-end
-
 teleportgroup:AddDropdown("TeleportPlayer", {
-	Values = playerlist,
-	Default = 1,
+	SpecialType = "Player",
+	ExcludeLocalPlayer = true,
 	Text = "Select Player",
 	Callback = function(Value)
 	end,
 })
 
 teleportgroup:AddButton({
-	Text = "Teleport To",
+	Text = "Teleport to Player",
 	Func = function()
-		local selectedplayername = Options.TeleportPlayer.Value
-		local targetplayer = Players:FindFirstChild(selectedplayername)
-		
-		if targetplayer and targetplayer.Character and targetplayer.Character:FindFirstChild("HumanoidRootPart") then
-			if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-				LocalPlayer.Character.HumanoidRootPart.CFrame = targetplayer.Character.HumanoidRootPart.CFrame
+		local selectedPlayer = Options.TeleportPlayer.Value
+		if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+			if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+				Players.LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
+				if debugmode then
+					print("[DEBUG]: Teleported to " .. selectedPlayer.Name)
+				end
 			end
 		end
 	end,
@@ -1132,7 +1445,7 @@ fpsgroup:AddSlider("FPSCap", {
 
 fpsgroup:AddDropdown("FPSPresets", {
 	Values = {"24", "30", "60", "120", "240", "460", "520"},
-	Default = 3,
+	Default = 1,
 	Text = "FPS Presets",
 	Callback = function(Value)
 		local fps = tonumber(Value)
@@ -1151,7 +1464,6 @@ fpsgroup:AddButton({
 	end,
 })
 
--- Added AimLock UI elements after FPS Control group
 local aimlocktabbox = Tabs.Features:AddLeftTabbox()
 local aimlocktab = aimlocktabbox:AddTab("AimLock")
 local aimlockconfigtab = aimlocktabbox:AddTab("Configurations")
@@ -1181,23 +1493,12 @@ aimlocktab:AddCheckbox("AimLockCertainPlayer", {
 	end,
 })
 
-local aimlockplayerlist = {}
-local function updateaimlockplayerlist()
-	aimlockplayerlist = {}
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer then
-			table.insert(aimlockplayerlist, player.Name)
-		end
-	end
-	Options.AimLockPlayerSelect:SetValues(aimlockplayerlist)
-end
-
 aimlocktab:AddDropdown("AimLockPlayerSelect", {
-	Values = aimlockplayerlist,
-	Default = 1,
+	SpecialType = "Player",
+	ExcludeLocalPlayer = true,
 	Text = "Select Player",
 	Callback = function(Value)
-		selectedplayer = Players:FindFirstChild(Value)
+		selectedplayer = Value
 	end,
 })
 
@@ -1229,7 +1530,6 @@ aimlocktab:AddCheckbox("ShowFOV", {
 	end,
 })
 
--- Fixed nil reference by checking if Options.ShowFOV exists before setting Disabled
 if Options.ShowFOV then
 	Options.ShowFOV.Disabled = true
 end
@@ -1335,7 +1635,7 @@ menugroup:AddDropdown("DPIDropdown", {
 	Default = "100%",
 	Text = "DPI Scale",
 	Callback = function(Value)
-		Value = Value:gsub("%%", "")
+		Value = string.gsub(Value, "%%", "")
 		local dpi = tonumber(Value)
 		Library:SetDPIScale(dpi)
 	end,
@@ -1349,7 +1649,25 @@ menugroup:AddButton("Unload", function()
 	Library:Unload()
 end)
 
-Library.ToggleKeybind = Options.MenuKeybind
+menugroup:AddToggle("DebugMode", {
+	Text = "Debug Mode (Restart Required)",
+	Default = debugmode,
+	Callback = function(Value)
+		if Value then
+			writefile("debugtrue", "debug enabled")
+			if debugmode then
+				print("[DEBUG]: Debug mode file created - restart script to enable")
+			end
+		else
+			if isfile("debugtrue") then
+				delfile("debugtrue")
+				if debugmode then
+					print("[DEBUG]: Debug mode file deleted - restart script to disable")
+				end
+			end
+		end
+	end,
+})
 
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
@@ -1365,81 +1683,95 @@ ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 SaveManager:LoadAutoloadConfig()
 
--- Added AimLock player list updates in the player events section
-Players.PlayerAdded:Connect(function(player)
-	if espenabled then
-		createesp(player)
-	end
-	if outlineenabled then
-		playerconnections[player.UserId] = {}
-		setupplayerhighlight(player)
-	end
-	updateplayerlist()
-	updateaimlockplayerlist()
-end)
+local animationstabbox = Tabs["FE Stuff"]:AddLeftTabbox()
+local animtab = animationstabbox:AddTab("Anim")
+local animconfigtab = animationstabbox:AddTab("Config")
 
-Players.PlayerRemoving:Connect(function(player)
-	removeesp(player)
-	removehighlight(player)
-	updateplayerlist()
-	updateaimlockplayerlist()
-end)
+local animationnames = {}
+for name, _ in pairs(animationids) do
+	table.insert(animationnames, name)
+end
 
-spawn(function()
-	while true do
-		task.wait()
-		updateplayerlist()
-		updateaimlockplayerlist()
-	end
-end)
+animtab:AddDropdown("AnimationSelect", {
+	Values = animationnames,
+	Default = 1,
+	Text = "Select Animation",
+	Callback = function(Value)
+		selectedanimation = animationids[Value]
+		if debugmode then
+			print("[DEBUG]: Selected animation: " .. Value .. " (ID: " .. selectedanimation .. ")")
+		end
+	end,
+})
 
--- Added AimLock update call in the main render loop
-RunService.RenderStepped:Connect(function()
-	if espenabled then
-		updateesp()
-	end
-	
-	if outlineenabled then
-		for userid, highlight in pairs(activehighlights) do
-			if highlight then
-				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-				highlight.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
-				highlight.OutlineTransparency = espconfig.outlinetransparency
-				highlight.FillTransparency = espconfig.outlinefilltransparency
+animtab:AddCheckbox("PlayAnimation", {
+	Text = "Play Animation",
+	Default = false,
+	Callback = function(Value)
+		if Value then
+			if selectedanimation and selectedanimation ~= "" then
+				playanimation(selectedanimation)
+				if debugmode then
+					print("[DEBUG]: Playing animation: " .. selectedanimation)
+				end
+			end
+		else
+			stopanimation()
+			if debugmode then
+				print("[DEBUG]: Stopped animation via checkbox")
 			end
 		end
-	end
-	
-	updateaimlock()
-	
-	if showfov then
-		if not fovcircle then
-			fovcircle = Drawing.new("Circle")
-			fovcircle.Thickness = 1
-			fovcircle.NumSides = 100
-			fovcircle.Filled = false
-		end
-		updatefovcircle()
-	else
-		if fovcircle then
-			fovcircle:Remove()
-			fovcircle = nil
-		end
-	end
-end)
+	end,
+})
 
--- Added continuous application loop at the end of the script before Library:OnUnload
-task.spawn(function()
-	while true do
-		task.wait()
-		local character = LocalPlayer.Character
-		if character and character:FindFirstChild("Humanoid") then
-			character.Humanoid.WalkSpeed = currentwalkspeed
-			character.Humanoid.JumpPower = currentjumppower
+animtab:AddInput("CustomAnimID", {
+	Default = "",
+	Numeric = true,
+	Text = "Custom Animation ID",
+	Placeholder = "Enter animation ID...",
+	Callback = function(Value)
+		if debugmode then
+			print("[DEBUG]: Custom animation ID set to: " .. Value)
 		end
-		workspace.Gravity = currentgravity
-	end
-end)
+	end,
+})
+
+animtab:AddCheckbox("PlayCustomAnimation", {
+	Text = "Play Custom Animation ID",
+	Default = false,
+	Callback = function(Value)
+		if Value then
+			local customID = Options.CustomAnimID.Value
+			if customID and customID ~= "" then
+				playanimation(customID)
+				if debugmode then
+					print("[DEBUG]: Playing custom animation: " .. customID)
+				end
+			else
+				Toggles.PlayCustomAnimation:SetValue(false)
+				if debugmode then
+					print("[DEBUG]: No custom animation ID provided")
+				end
+			end
+		else
+			stopanimation()
+			if debugmode then
+				print("[DEBUG]: Stopped custom animation via checkbox")
+			end
+		end
+	end,
+})
+
+animconfigtab:AddCheckbox("LoopAnimation", {
+	Text = "Loop Animation",
+	Default = false,
+	Callback = function(Value)
+		loopanimation = Value
+		if debugmode then
+			print("[DEBUG]: Loop Animation set to: " .. tostring(Value))
+		end
+	end,
+})
 
 Library:OnUnload(function()
 	for player, _ in pairs(espobjects) do
@@ -1465,3 +1797,51 @@ Library:OnUnload(function()
 		line:Destroy()
 	end
 end)
+
+task.spawn(function()
+	while true do
+		task.wait()
+		local character = LocalPlayer.Character
+		if character and character:FindFirstChild("Humanoid") then
+			character.Humanoid.WalkSpeed = currentwalkspeed
+			character.Humanoid.JumpPower = currentjumppower
+		end
+		workspace.Gravity = currentgravity
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if espenabled then
+		updateesp()
+	end
+	
+	if outlineenabled then
+		for userid, highlight in pairs(activehighlights) do
+			if highlight then
+				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
+				highlight.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+			end
+		end
+	end
+	
+	updateaimlock()
+	updatefovcircle()
+end)
+
+UserInputService.JumpRequest:Connect(function()
+	if infinitejumpenabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+end)
+
+RunService.Heartbeat:Connect(function()
+	if noclipenabled and LocalPlayer.Character then
+		for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+Library.ToggleKeybind = Options.MenuKeybind
