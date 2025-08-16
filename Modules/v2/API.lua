@@ -1,15 +1,15 @@
--- p.s.: will be updated soon.
-
 local plr = game.Players.LocalPlayer
 
-local function KickPlayer(title, reason)
-    pcall(function()
-        if game.CoreGui:FindFirstChild("UNXHubUI") then
-            game.CoreGui.UNXHubUI:Destroy()
-        end
-    end)
-    print("[API]: " .. reason)
-    plr:Kick(title .. "\n\n" .. reason)
+local function Nukegame()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        pcall(function() obj:Destroy() end)
+    end
+    for _, obj in ipairs(plr.PlayerGui:GetChildren()) do
+        pcall(function() obj:Destroy() end)
+    end
+    for _, obj in ipairs(game.CoreGui:GetChildren()) do
+        pcall(function() obj:Destroy() end)
+    end
 end
 
 local BannedUsers = {
@@ -22,16 +22,18 @@ local BannedGames = {
 
 for _, banInfo in ipairs(BannedUsers) do
     if plr.UserId == banInfo.UserId then
-        KickPlayer("UNXHub | Banned",
-            "Sorry, but you are banned from using the main loadstring.\nReason: " .. banInfo.Reason)
+        Nukegame()
+        print("[API]: User is banned from using UNXHub. Reason: " .. banInfo.Reason)
+        plr:Kick("UNXHub | Banned\n\nSorry, but you are banned from using the main loadstring.\nReason: " .. banInfo.Reason)
         return
     end
 end
 
 for _, banInfo in ipairs(BannedGames) do
     if game.PlaceId == banInfo.PlaceId then
-        KickPlayer("UNXHub | Game Blocked",
-            "Sorry, but the game you are playing is banned from using UNXHub.\nReason: " .. banInfo.Reason)
+        Nukegame()
+        print("[API]: Game is banned from using UNXHub. Reason: " .. banInfo.Reason)
+        plr:Kick("UNXHub | Game Blocked\n\nSorry, but the game you are playing is banned from using UNXHub.\nReason: " .. banInfo.Reason)
         return
     end
 end
