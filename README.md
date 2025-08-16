@@ -1,6 +1,6 @@
 # UNXHub
 
-**Version:** **1.2.0**  
+**Version:** **1.2.1**  
 **Tested Executors:** **Ronix (1.1.3b)**, **Codex**, **Delta**, **F^W (FrostWare, 1.1.3b)**
 
 ---
@@ -31,5 +31,5 @@ This project was created for **personal learning** and **experimentation** with 
 - **Rejoin Server**  
 - **UI Scale Adjustment**
 - **Player AimLock**
-
+- **And Much Much More!**
 ---
