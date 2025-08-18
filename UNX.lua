@@ -27,7 +27,7 @@ local Tabs = {
 	Main = Window:AddTab("Main", "user"),
 	Visuals = Window:AddTab("Visuals", "eye"),
 	Features = Window:AddTab("Features", "bug"),
-	["FE Stuff"] = Window:AddTab("FE Stuff", "zap"),
+	["Fun"] = Window:AddTab("Fun", "music"),
 	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
 
@@ -40,6 +40,8 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local Stats = game:GetService("Stats")
+local TextChatService = game:GetService("TextChatService")
+local SoundService = game:GetService("SoundService")
 
 local originalwalkspeed = 16
 local originaljumppower = 50
@@ -1379,10 +1381,26 @@ teleportgroup:AddButton({
 
 local autochatgroup = Tabs.Features:AddLeftGroupbox("Auto Chat", "message-circle")
 
+-- Updated auto chat to use TextChatService
+local autochatEnabled = false
+local autochatMessage = "Hello World!"
+local autochatInterval = 1
+
 autochatgroup:AddCheckbox("AutoChat", {
 	Text = "Auto Chat",
 	Default = false,
 	Callback = function(Value)
+		autochatEnabled = Value
+		if Value then
+			spawn(function()
+				while autochatEnabled do
+					if TextChatService.TextChannels.RBXGeneral then
+						TextChatService.TextChannels.RBXGeneral:SendAsync(autochatMessage)
+					end
+					wait(autochatInterval)
+				end
+			end)
+		end
 	end,
 })
 
@@ -1390,16 +1408,18 @@ autochatgroup:AddInput("AutoChatMessage", {
 	Default = "Hello World!",
 	Text = "Chat Message",
 	Callback = function(Value)
+		autochatMessage = Value
 	end,
 })
 
-autochatgroup:AddSlider("AutoChatDelay", {
-	Text = "Auto Chat Delay",
+autochatgroup:AddSlider("AutoChatInterval", {
+	Text = "Chat Interval (seconds)",
 	Default = 1,
 	Min = 0.1,
 	Max = 5,
 	Rounding = 0.1,
 	Callback = function(Value)
+		autochatInterval = Value
 	end,
 })
 
@@ -1605,6 +1625,18 @@ aimlockconfigtab:AddSlider("FOVSizeY", {
 
 local menugroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "settings")
 
+-- Fixed DPI Scale input to handle % symbol properly
+menugroup:AddInput("DPIScale", {
+	Default = "100",
+	Text = "DPI Scale",
+	Callback = function(Value)
+		local dpi = tonumber(Value)
+		if dpi then
+			Library:SetDPIScale(dpi)
+		end
+	end,
+})
+
 menugroup:AddCheckbox("KeybindMenuOpen", {
 	Default = Library.KeybindFrame.Visible,
 	Text = "Open Keybind Menu",
@@ -1683,7 +1715,8 @@ ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 SaveManager:LoadAutoloadConfig()
 
-local animationstabbox = Tabs["FE Stuff"]:AddLeftTabbox()
+-- Updated animations section to be in Fun tab instead of FE Stuff
+local animationstabbox = Tabs["Fun"]:AddLeftTabbox()
 local animtab = animationstabbox:AddTab("Anim")
 local animconfigtab = animationstabbox:AddTab("Config")
 
@@ -1772,6 +1805,236 @@ animconfigtab:AddCheckbox("LoopAnimation", {
 		end
 	end,
 })
+
+-- Replaced basic music player with advanced audio player logic
+-- Remove the existing music player section and replace with comprehensive version
+local musicplayergroup = Tabs["Fun"]:AddRightGroupbox("Music Player", "music")
+
+-- Music system variables
+local CurrentSound -- stores currently playing sound
+local musicFolder = "unxhub/musics"
+
+-- Create music folder if it doesn't exist
+if not isfolder("unxhub") then
+	makefolder("unxhub")
+end
+if not isfolder(musicFolder) then
+	makefolder(musicFolder)
+end
+
+-- Helper: Load songs from folder
+local function LoadSongs(folder)
+	local files = listfiles(folder)
+	local songs = {}
+	for _, f in ipairs(files) do
+		if isfile(f) then
+			local content = readfile(f)
+			local id, name = content:match("ID:(%d+)\nName:(.+)")
+			if id and name then
+				table.insert(songs, name .. " (" .. id .. ")")
+			end
+		end
+	end
+	return songs
+end
+
+-- Helper: Play sound
+local function PlaySound(id, label, loop)
+	if CurrentSound then CurrentSound:Destroy() end
+	local sound = Instance.new("Sound")
+	sound.SoundId = "rbxassetid://" .. id
+	sound.Parent = SoundService
+	sound.Volume = Options.MusicVolume and Options.MusicVolume.Value or 1
+	sound.PlaybackSpeed = Options.MusicSpeed and Options.MusicSpeed.Value or 1
+	sound.Pitch = Options.MusicPitch and Options.MusicPitch.Value or 1
+	sound.Looped = loop or (Toggles.LoopPlay and Toggles.LoopPlay.Value)
+	sound:Play()
+	CurrentSound = sound
+	Library:Notify("Playing: " .. label, 3)
+end
+
+-- Music List Dropdown
+musicplayergroup:AddDropdown("MusicList", {
+	Values = LoadSongs(musicFolder),
+	Default = 1,
+	Multi = false,
+	Text = "Music List",
+	Searchable = true,
+})
+
+-- Auto-update dropdown every 0.5s
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		if Options.MusicList then
+			Options.MusicList.Values = LoadSongs(musicFolder)
+		end
+		-- Added auto-update for RemoveSound dropdown
+		if Options.RemoveSound then
+			Options.RemoveSound.Values = LoadSongs(musicFolder)
+		end
+	end
+end)
+
+-- Play Music (Order)
+musicplayergroup:AddButton({
+	Text = "Play Music (Order)",
+	Func = function()
+		local val = Options.MusicList.Value
+		if not val then Library:Notify("Select a music first", 3) return end
+		local id = val:match("%((%d+)%)")
+		if id then PlaySound(id, val) end
+	end,
+})
+
+-- Play Music (Shuffled)
+musicplayergroup:AddButton({
+	Text = "Play Music (Shuffled)",
+	Func = function()
+		local songs = LoadSongs(musicFolder)
+		if #songs == 0 then Library:Notify("No songs found", 3) return end
+		local pick = songs[math.random(1, #songs)]
+		local id = pick:match("%((%d+)%)")
+		if id then PlaySound(id, pick) end
+	end,
+})
+
+-- Stop Music
+musicplayergroup:AddButton({
+	Text = "Stop Music",
+	Func = function()
+		if CurrentSound then
+			CurrentSound:Destroy()
+			CurrentSound = nil
+			Library:Notify("Stopped music", 3)
+		else
+			Library:Notify("No music is playing", 3)
+		end
+	end,
+})
+
+-- Division Line
+musicplayergroup:AddDivider()
+
+-- Music ID & Name inputs
+musicplayergroup:AddInput("MusicID", {Text="Music ID", Default="", Numeric=true, ClearTextOnFocus=true, Placeholder="Enter ID"})
+musicplayergroup:AddInput("MusicName", {Text="Music Name", Default="", Numeric=false, ClearTextOnFocus=true, Placeholder="Enter Name"})
+
+-- Add Music
+musicplayergroup:AddButton({
+	Text = "Add Music To Music List",
+	Func = function()
+		local id,name = Options.MusicID.Value, Options.MusicName.Value
+		if id=="" or name=="" then Library:Notify("Fill both ID and Name",3) return end
+		writefile(musicFolder.."/"..name..".txt","ID:"..id.."\nName:"..name)
+		Library:Notify("Added: "..name,3)
+	end,
+})
+
+-- Remove Sound Dropdown & Button
+musicplayergroup:AddDropdown("RemoveSound", {
+	Values = LoadSongs(musicFolder),
+	Multi = true,
+	Text = "Remove Sound",
+	Searchable = true,
+})
+
+musicplayergroup:AddButton({
+	Text = "Remove Selected Sound(s)",
+	Func = function()
+		local selections = Options.RemoveSound.Value
+		if not selections or #selections==0 then Library:Notify("Select sound(s) to remove",3) return end
+		for _, s in ipairs(selections) do
+			local id = s:match("%((%d+)%)")
+			local fname = s:match("(.+) %("..id.."%)")
+			if id and fname and isfile(musicFolder.."/"..fname..".txt") then
+				delfile(musicFolder.."/"..fname..".txt")
+			end
+		end
+		Library:Notify("Removed selected sound(s)",3)
+		Options.RemoveSound.Values = LoadSongs(musicFolder)
+	end,
+})
+
+-- Updated config section to use separate tabbox for better organization
+local musicconfigtabbox = Tabs["Fun"]:AddRightTabbox()
+local musicconfigtab = musicconfigtabbox:AddTab("Music Config")
+
+musicconfigtab:AddSlider("MusicSpeed", {Text="Playback Speed", Default=1, Min=0.5, Max=10, Rounding=1, Callback=function(val) if CurrentSound then CurrentSound.PlaybackSpeed=val end end})
+musicconfigtab:AddSlider("MusicVolume",{Text="Volume",Default=1,Min=0.1,Max=10,Rounding=1,Callback=function(val) if CurrentSound then CurrentSound.Volume=val end end})
+musicconfigtab:AddSlider("MusicPitch",{Text="Pitch",Default=1,Min=0.1,Max=10,Rounding=1,Callback=function(val) if CurrentSound then CurrentSound.Pitch=val end end})
+
+-- Loop Play (Toggle converted to Checkbox as requested)
+musicconfigtab:AddCheckbox("LoopPlay", {
+	Text = "Music Looped",
+	Default = false,
+	Callback = function(val)
+		if CurrentSound then CurrentSound.Looped = val end
+		Library:Notify("Looping is now " .. (val and "Enabled" or "Disabled"), 3)
+	end,
+})
+
+-- Added Example Songs group with predefined music library
+local ExampleGroup = Tabs["Fun"]:AddLeftGroupbox("Example Songs","example-box")
+local ExampleFolder = "unxhub/examples"
+
+-- Create example folder
+if not isfolder(ExampleFolder) then
+	makefolder(ExampleFolder)
+end
+
+local ExampleSongs = {
+	["Life Goes On!"]=7608899217,["Feels"]=8879155640,["Gangster Paradise"]=6070263388,
+	["Faceoff – The Rock"]=7795812961,["Stay – Kid Laroi ft. Justin Bieber"]=9062549544,
+	["Toxic"]=1842652230,["SAD – X"]=7707736242,["Moskau"]=135055100,["Xo tour Lif3"]=7823128741,
+	["Tokyo Machine – Play"]=5410085763,["The Rolling Stones – Paint It, Black"]=6828176320,
+	["Koven – All for Nothing"]=7024143472,["Chicken Nugget Dreamland"]=9245561450,["Drake – God's Plan"]=1665926924,
+	["Maroon 5 – Moves Like Jagger"]=291895335,["Christopher Michael Walters – Everything"]=1837014514,
+	["One Piece"]=1838028562,["Changing World (A)"]=1842471943,["Deep And Dirty"]=1836785943,
+	["Knuckle"]=1842727209,["Portrait of You"]=7023435987,["Cyber Music"]=6911766512,
+	["Michael Jackson – Smooth Criminal"]=4883181281,["Bensley"]=5410082273,["Face Off"]=7795812961,
+	["Happy Music"]=1848239370,["Light It"]=1840006854,["I Want You To Be My Man"]=1839707917,
+	["Lovely Day"]=1839481371,["Hallelujah"]=1846627271,["Labor of Love"]=1843541645,
+	["Pushing Forward"]=1843528841,["Higher & Higher"]=1837256919,["Squid Game RLGL"]=7535587224,
+	["Busybody"]=1839986001,["Danyka"]=7024233823,["I See Colors"]=7023720291,["Lil Mosey"]=10460286916
+}
+
+-- Write example songs to folder if not exist
+for name,id in pairs(ExampleSongs) do
+	local path = ExampleFolder.."/"..name..".txt"
+	if not isfile(path) then
+		writefile(path,"ID:"..id.."\nName:"..name)
+	end
+end
+
+-- Dropdown for example songs
+ExampleGroup:AddDropdown("ExampleList",{
+	Values=LoadSongs(ExampleFolder),
+	Default=1,
+	Multi=false,
+	Text="Example Songs",
+	Searchable=true
+})
+
+-- Play Example
+ExampleGroup:AddButton({Text="Play Example",Func=function()
+	local val=Options.ExampleList.Value
+	if not val then Library:Notify("Select a song",3) return end
+	local id=val:match("%((%d+)%)")
+	if id then PlaySound(id,val) end
+end})
+
+-- Stop Example
+ExampleGroup:AddButton({Text="Stop Example",Func=function()
+	if CurrentSound then CurrentSound:Destroy() CurrentSound=nil Library:Notify("Stopped music",3)
+	else Library:Notify("No music is playing",3) end
+end})
+
+-- Loop Example checkbox
+ExampleGroup:AddCheckbox("LoopExample",{Text="Loop Example",Default=false,Callback=function(val)
+	if CurrentSound then CurrentSound.Looped=val end
+	Library:Notify("Example Loop "..(val and "Enabled" or "Disabled"),3)
+end})
 
 Library:OnUnload(function()
 	for player, _ in pairs(espobjects) do
