@@ -1,4 +1,4 @@
--- ANYTHING ABOVE 1.1.4b BREAKS THIS!, DO NOT USE ON 1.2.0 AND NEWER!
+-- ANYTHING ABOVE 1.1.3b BREAKS THIS!, DO NOT USE ON 1.2.0 AND NEWER!
 
 local a = game:GetService("CoreGui")
 local b = game:GetService("StarterGui")
