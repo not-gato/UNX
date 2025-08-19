@@ -12,7 +12,7 @@ local gamename = game:GetService("MarketplaceService"):GetProductInfo(game.Place
 local Window = Library:CreateWindow({
 	Title = "UNXHub",
 	Footer = "Version: " .. version .. ", Game: " .. gamename,
-	Icon = 137779536741206,
+	Icon = 123333102279908,
 	NotifySide = "Right",
 	ShowCustomCursor = true,
 })
