@@ -2114,6 +2114,9 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/hea
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
 Library.ToggleKeybind = Options.MenuKeybind
 
+local player = game.Players.LocalPlayer
+local exec = (type(identifyexecutor) == "function" and identifyexecutor()) or "Not Possible To Fetch Executor Name, Your Executor Probably Doesn't Support identifyexecutor() ")
+
 modules.print("purple", [[
 
  _   _ _   _ __   __ _   _       _      
@@ -2126,8 +2129,8 @@ modules.print("purple", [[
 ]], 16)
 
 modules.print("green", "UNXHub ".. version .." :D", 16)
-modules.print("green", "Player Name: " .. Players.LocalPlayer.Name, 16)
-modules.print("green", "Display Name: " .. Players.LocalPlayer.DisplayName, 16)
+modules.print("green", "Player Name: " .. player.Name, 16)
+modules.print("green", "Display Name: " .. player.DisplayName, 16)
 modules.print("green", "UserID: " .. Players.LocalPlayer.UserId, 16)
 modules.print("green", "Local Executor: " .. exec, 16)
 modules.print("green", "Local Executor Level:", 16)
