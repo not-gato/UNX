@@ -5,6 +5,7 @@ local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
 local Options = Library.Options
 local Toggles = Library.Toggles
+local modules = loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/ColorPrint.lua", true))()
 
 local version = "1.2.2"
 local gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
@@ -2112,3 +2113,7 @@ end)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Invite.lua",true))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
 Library.ToggleKeybind = Options.MenuKeybind
+
+-- prints (COLORED WOWOWOOWOW)
+
+modules.print("green", "UNXHub ".. version .." Loaded Sucessfully", 16)
