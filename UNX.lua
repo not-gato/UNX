@@ -2128,7 +2128,6 @@ modules.print("yellow", "| | | |  \\| | \\ V / | |_| |_   _| |__   ", 16)
 modules.print("green",  "| | | | . ` | /   \\ |  _  | | | | '_ \\  ", 16)
 modules.print("blue",   "| |_| | |\\  |/ /^\\ \\| | | | |_| | |_) | ", 16)
 modules.print("purple", " \\___/\\_| \\_/\\/   \\/\\_| |_/\\__,_|_.__/  ", 16)
-modules.print("magenta","                                         ", 16)
 
 modules.print("green", "UNXHub ".. version .." :D", 16)
 modules.print("green", "Player Name: " .. player.Name, 16)
