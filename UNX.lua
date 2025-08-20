@@ -2122,16 +2122,13 @@ if not player then
 	player = Players.PlayerAdded:Wait()
 end
 
-modules.print("purple", [[
-
- _   _ _   _ __   __ _   _       _      
-| | | | \ | |\ \ / /| | | |     | |     
-| | | |  \| | \ V / | |_| |_   _| |__   
-| | | | . ` | /   \ |  _  | | | | '_ \  
-| |_| | |\  |/ /^\ \| | | | |_| | |_) | 
- \___/\_| \_/\/   \/\_| |_/\__,_|_.__/  
-
-]], 16)
+modules.print("red",    " _   _ _   _ __   __ _   _       _      ", 16)
+modules.print("orange", "| | | | \\ | |\\ \\ / /| | | |     | |     ", 16)
+modules.print("yellow", "| | | |  \\| | \\ V / | |_| |_   _| |__   ", 16)
+modules.print("green",  "| | | | . ` | /   \\ |  _  | | | | '_ \\  ", 16)
+modules.print("blue",   "| |_| | |\\  |/ /^\\ \\| | | | |_| | |_) | ", 16)
+modules.print("purple", " \\___/\\_| \\_/\\/   \\/\\_| |_/\\__,_|_.__/  ", 16)
+modules.print("magenta","                                         ", 16)
 
 modules.print("green", "UNXHub ".. version .." :D", 16)
 modules.print("green", "Player Name: " .. player.Name, 16)
