@@ -2126,8 +2126,8 @@ modules.print("purple", [[
 ]], 16)
 
 modules.print("green", "UNXHub ".. version .." :D", 16)
-modules.print("green", "Player Name: " .. player.Name, 16)
-modules.print("green", "Display Name: " .. player.DisplayName, 16)
-modules.print("green", "UserID: " .. player.UserId, 16)
+modules.print("green", "Player Name: " .. Players.LocalPlayer.Name, 16)
+modules.print("green", "Display Name: " .. Players.LocalPlayer.DisplayName, 16)
+modules.print("green", "UserID: " .. Players.LocalPlayer.UserId, 16)
 modules.print("green", "Local Executor: " .. exec, 16)
 modules.print("green", "Local Executor Level:", 16)
