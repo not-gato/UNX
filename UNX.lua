@@ -2114,8 +2114,13 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/hea
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
 Library.ToggleKeybind = Options.MenuKeybind
 
-local player = game.Players.LocalPlayer
-local exec = (type(identifyexecutor) == "function" and identifyexecutor()) or "Not Possible To Fetch Executor Name, Your Executor Probably Doesn't Support identifyexecutor() ")
+local player = Players.LocalPlayer
+local exec = (type(identifyexecutor) == "function" and identifyexecutor()) or "Not Possible To Fetch Executor Name, Your Executor Probably Doesn't Support identifyexecutor()"
+
+-- THIS SHOULD FIX THE FUCKING ERROR
+if not player then
+	player = Players.PlayerAdded:Wait()
+end
 
 modules.print("purple", [[
 
@@ -2131,6 +2136,6 @@ modules.print("purple", [[
 modules.print("green", "UNXHub ".. version .." :D", 16)
 modules.print("green", "Player Name: " .. player.Name, 16)
 modules.print("green", "Display Name: " .. player.DisplayName, 16)
-modules.print("green", "UserID: " .. Players.LocalPlayer.UserId, 16)
+modules.print("green", "UserID: " .. player.UserId, 16)
 modules.print("green", "Local Executor: " .. exec, 16)
 modules.print("green", "Local Executor Level:", 16)
