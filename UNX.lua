@@ -2114,6 +2114,20 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/hea
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
 Library.ToggleKeybind = Options.MenuKeybind
 
--- prints (COLORED WOWOWOOWOW)
+modules.print("purple", [[
 
-modules.print("green", "UNXHub ".. version .." Loaded Sucessfully", 16)
+ _   _ _   _ __   __ _   _       _      
+| | | | \ | |\ \ / /| | | |     | |     
+| | | |  \| | \ V / | |_| |_   _| |__   
+| | | | . ` | /   \ |  _  | | | | '_ \  
+| |_| | |\  |/ /^\ \| | | | |_| | |_) | 
+ \___/\_| \_/\/   \/\_| |_/\__,_|_.__/  
+
+]], 16)
+
+modules.print("green", "UNXHub ".. version .." :D", 16)
+modules.print("green", "Player Name: " .. player.Name, 16)
+modules.print("green", "Display Name: " .. player.DisplayName, 16)
+modules.print("green", "UserID: " .. player.UserId, 16)
+modules.print("green", "Local Executor: " .. exec, 16)
+modules.print("green", "Local Executor Level:", 16)
