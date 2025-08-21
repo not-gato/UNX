@@ -7,7 +7,7 @@ local Options = Library.Options
 local Toggles = Library.Toggles
 local modules = loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/ColorPrint.lua", true))()
 
-local version = "1.2.2"
+local version = "2.0.2a"
 local gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
 
 local Window = Library:CreateWindow({
