@@ -1,5 +1,3 @@
--- i found this somewhere on scriptblox, idk where lol
-
 local modules = {
 	colors = {
 		green = "0,255,0",
