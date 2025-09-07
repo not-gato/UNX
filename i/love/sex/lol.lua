@@ -126,7 +126,7 @@ stacked.Image01s.Visible = true
 task.wait(0.1)
 local kicked = false
 pcall(function()
-    player:Kick("Unknown Hard Error")
+    player:Kick("An Unknown Hard Error Ocurred And Overdrive H Needs To Quit.")
     kicked = true
 end)
 
