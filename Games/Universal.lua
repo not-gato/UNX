@@ -121,11 +121,11 @@ local selectedanimation = ""
 local loopanimation = false
 local animationids = {
 	["Dance (R15)"] = "507766388",
-	["Zombie (R15)"] = "616158929", 
+	["Zombie (R15)"] = "616158929",
 	["Sit (R15)"] = "2506281703",
 	["Salute (R15)"] = "582855105",
 	["Bang (R6)"] = "148840371",
-	["Jerk (R6)"] = "72042024", 
+	["Jerk (R6)"] = "72042024",
 	["Lay (R6)"] = "282574440"
 }
 
@@ -192,19 +192,19 @@ end
 local function createesp(player)
 	if player == LocalPlayer then return end
 	if espobjects[player] then return end
-	
+
 	local nametext = Drawing.new("Text")
 	nametext.Size = espconfig.espsize
 	nametext.Center = true
 	nametext.Outline = true
 	nametext.Color = espconfig.espcolor
-	
+
 	local infotext = Drawing.new("Text")
 	infotext.Size = espconfig.espsize - 4
 	infotext.Center = true
 	infotext.Outline = true
 	infotext.Color = espconfig.espcolor
-	
+
 	espobjects[player] = {
 		Name = nametext,
 		Info = infotext
@@ -224,22 +224,22 @@ local function updateesp()
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local hrp = player.Character.HumanoidRootPart
 			local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
-			
+
 			local color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
 			esp.Name.Color = color
 			esp.Info.Color = color
 			esp.Name.Size = espconfig.espsize
 			esp.Info.Size = espconfig.espsize - 4
-			
+
 			if onscreen then
 				local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
 				local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 				local health = humanoid and math.floor(humanoid.Health) or 0
-				
+
 				esp.Name.Position = Vector2.new(pos.X, pos.Y - 20)
 				esp.Name.Text = espconfig.showname and player.Name or ""
 				esp.Name.Visible = espconfig.showname
-				
+
 				esp.Info.Position = Vector2.new(pos.X, pos.Y - 7)
 				esp.Info.Text = espconfig.showdistance and ("[Distance " .. math.floor(distance) .. "]") or ""
 				esp.Info.Visible = espconfig.showdistance
@@ -258,7 +258,7 @@ local function applyhighlighttocharacter(player, character)
 	if activehighlights[userid] then
 		activehighlights[userid]:Destroy()
 	end
-	
+
 	local highlighter = Instance.new("Highlight")
 	highlighter.Name = "PlayerHighlight"
 	highlighter.FillTransparency = espconfig.outlinefilltransparency
@@ -267,35 +267,35 @@ local function applyhighlighttocharacter(player, character)
 	highlighter.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
 	highlighter.Adornee = character
 	highlighter.Parent = character
-	
+
 	activehighlights[userid] = highlighter
 end
 
 local function setupplayerhighlight(player)
 	local userid = player.UserId
 	playerconnections[userid] = playerconnections[userid] or {}
-	
+
 	local function oncharacteradded(character)
 		local humanoid = character:WaitForChild("Humanoid")
 		if outlineenabled then
 			applyhighlighttocharacter(player, character)
 		end
-		
+
 		table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
 			local highlight = activehighlights[userid]
 			if highlight then
 				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
 			end
 		end))
-		
+
 		table.insert(playerconnections[userid], humanoid.Died:Connect(function()
 			removehighlight(player)
 		end))
 	end
-	
+
 	local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
 	table.insert(playerconnections[userid], charaddedconn)
-	
+
 	if player.Character then
 		oncharacteradded(player.Character)
 	end
@@ -307,7 +307,7 @@ function removehighlight(player)
 		activehighlights[userid]:Destroy()
 		activehighlights[userid] = nil
 	end
-	
+
 	if playerconnections[userid] then
 		for _, conn in pairs(playerconnections[userid]) do
 			conn:Disconnect()
@@ -323,12 +323,12 @@ local function toggletracers()
 				line:Destroy()
 			end
 			tracerlines = {}
-			
+
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 					local root = player.Character.HumanoidRootPart
 					local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
-					
+
 					if onscreen then
 						local line = Drawing.new("Line")
 						line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -358,7 +358,7 @@ local function toggleskeleton()
 				line:Destroy()
 			end
 			skeletonlines = {}
-			
+
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
@@ -371,9 +371,9 @@ local function toggleskeleton()
 						LeftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"),
 						RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
 					}
-					
+
 					local color = espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor
-					
+
 					local function getscreen(part)
 						if part then
 							local pos, visible = Camera:WorldToViewportPoint(part.Position)
@@ -381,7 +381,7 @@ local function toggleskeleton()
 						end
 						return nil
 					end
-					
+
 					local function drawline(p1, p2)
 						if p1 and p2 then
 							local line = Drawing.new("Line")
@@ -394,7 +394,7 @@ local function toggleskeleton()
 							table.insert(skeletonlines, line)
 						end
 					end
-					
+
 					local head = getscreen(parts.Head)
 					local torso = getscreen(parts.Torso)
 					local hip = getscreen(parts.Hip)
@@ -402,7 +402,7 @@ local function toggleskeleton()
 					local ra = getscreen(parts.RightArm)
 					local ll = getscreen(parts.LeftLeg)
 					local rl = getscreen(parts.RightLeg)
-					
+
 					drawline(head, torso)
 					drawline(torso, hip)
 					drawline(torso, la)
@@ -424,11 +424,11 @@ end
 local function getclosestplayer()
 	local closestplayer = nil
 	local shortestdistance = math.huge
-	
+
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-			
+
 			if aimlocktype == "Nearest Player" and distance < nearestplayerdistance and distance < shortestdistance then
 				closestplayer = player
 				shortestdistance = distance
@@ -444,34 +444,34 @@ local function getclosestplayer()
 			end
 		end
 	end
-	
+
 	if fovenabled and closestplayer then
 		local screenpos, onscreen = Camera:WorldToViewportPoint(closestplayer.Character.HumanoidRootPart.Position)
 		if onscreen then
 			local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 			local distance = (Vector2.new(screenpos.X, screenpos.Y) - center).Magnitude
 			local worlddistance = (LocalPlayer.Character.HumanoidRootPart.Position - closestplayer.Character.HumanoidRootPart.Position).Magnitude
-			
+
 			if distance > math.min(fovsize.X, fovsize.Y) / 2 or worlddistance > fovlockdistance then
 				return nil
 			end
 		end
 	end
-	
+
 	return closestplayer
 end
 
 local function updateaimlock()
 	if not aimlockenabled then return end
-	
+
 	local targetplayer = nil
-	
+
 	if aimlockcertainplayer and selectedplayer then
 		targetplayer = selectedplayer
 	else
 		targetplayer = getclosestplayer()
 	end
-	
+
 	if targetplayer and targetplayer.Character and targetplayer.Character:FindFirstChild("Head") then
 		local targetposition = targetplayer.Character.Head.Position
 		local lookdirection = (targetposition - Camera.CFrame.Position).Unit
@@ -499,7 +499,7 @@ local function setupantifling()
 				end
 			end
 		end
-		
+
 		antiflingconnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
 			player.CharacterAdded:Connect(function(character)
 				if antiflingenabled then
@@ -511,7 +511,7 @@ local function setupantifling()
 				end
 			end)
 		end)
-		
+
 		antiflingconnections.CharacterAdded = {}
 		for _, player in pairs(Players:GetPlayers()) do
 			if player ~= LocalPlayer then
@@ -536,7 +536,7 @@ local function setupantifling()
 				end
 			end
 		end
-		
+
 		for _, connection in pairs(antiflingconnections) do
 			if typeof(connection) == "RBXScriptConnection" then
 				connection:Disconnect()
@@ -630,7 +630,7 @@ playergroup:AddCheckbox("AntiAFK", {
 					if not lastposition then
 						lastposition = currentpos
 					end
-					
+
 					if (currentpos - lastposition).Magnitude < 0.1 then
 						LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0, 0.1, 0)
 						wait(0.1)
@@ -679,7 +679,7 @@ playergroup:AddCheckbox("AntiKick", {
 			local mt = getrawmetatable(game)
 			local oldnamecall = mt.__namecall
 			setreadonly(mt, false)
-			
+
 			mt.__namecall = function(self, ...)
 				local method = getnamecallmethod()
 				if method == "Kick" then
@@ -687,7 +687,7 @@ playergroup:AddCheckbox("AntiKick", {
 				end
 				return oldnamecall(self, ...)
 			end
-			
+
 			setreadonly(mt, true)
 		end
 	end,
@@ -731,8 +731,6 @@ playergroup:AddCheckbox("InfiniteJump", {
 	end,
 })
 
-local UserInputService = game:GetService("UserInputService")
-
 local flygroup = Tabs.Main:AddRightGroupbox("Fly", "plane")
 
 local flySpeed = 1
@@ -742,12 +740,12 @@ local speeds = 1
 
 local function startFlying()
 	if nowe == true then return end
-	
+
 	nowe = true
 	local player = Players.LocalPlayer
 	local character = player.Character
 	if not character then return end
-	
+
 	for i = 1, speeds do
 		spawn(function()
 			local hb = RunService.Heartbeat
@@ -761,13 +759,13 @@ local function startFlying()
 			end
 		end)
 	end
-	
+
 	character.Animate.Disabled = true
 	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
 	for i,v in next, humanoid:GetPlayingAnimationTracks() do
 		v:AdjustSpeed(0)
 	end
-	
+
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
@@ -784,29 +782,29 @@ local function startFlying()
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
 	humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
-	
+
 	if humanoid.RigType == Enum.HumanoidRigType.R6 then
 		local torso = character.Torso
 		local ctrl = {f = 0, b = 0, l = 0, r = 0}
 		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 		local maxspeed = 50
 		local speed = 0
-		
+
 		local bg = Instance.new("BodyGyro", torso)
 		bg.P = 9e4
 		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 		bg.cframe = torso.CFrame
-		
+
 		local bv = Instance.new("BodyVelocity", torso)
 		bv.velocity = Vector3.new(0,0.1,0)
 		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-		
+
 		humanoid.PlatformStand = true
-		
+
 		spawn(function()
 			while nowe == true and humanoid.Health > 0 do
 				RunService.RenderStepped:Wait()
-				
+
 				local moveVector = humanoid.MoveDirection
 				if moveVector.Magnitude > 0 then
 					ctrl.f = moveVector.Z < 0 and 1 or 0
@@ -816,7 +814,7 @@ local function startFlying()
 				else
 					ctrl = {f = 0, b = 0, l = 0, r = 0}
 				end
-				
+
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -828,7 +826,7 @@ local function startFlying()
 						speed = 0
 					end
 				end
-				
+
 				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
 					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
 					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
@@ -837,10 +835,10 @@ local function startFlying()
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
-				
+
 				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
-			
+
 			bg:Destroy()
 			bv:Destroy()
 			humanoid.PlatformStand = false
@@ -853,22 +851,22 @@ local function startFlying()
 		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 		local maxspeed = 50
 		local speed = 0
-		
+
 		local bg = Instance.new("BodyGyro", upperTorso)
 		bg.P = 9e4
 		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 		bg.cframe = upperTorso.CFrame
-		
+
 		local bv = Instance.new("BodyVelocity", upperTorso)
 		bv.velocity = Vector3.new(0,0.1,0)
 		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-		
+
 		humanoid.PlatformStand = true
-		
+
 		spawn(function()
 			while nowe == true and humanoid.Health > 0 do
 				wait()
-				
+
 				local moveVector = humanoid.MoveDirection
 				if moveVector.Magnitude > 0 then
 					ctrl.f = moveVector.Z < 0 and 1 or 0
@@ -878,7 +876,7 @@ local function startFlying()
 				else
 					ctrl = {f = 0, b = 0, l = 0, r = 0}
 				end
-				
+
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -890,7 +888,7 @@ local function startFlying()
 						speed = 0
 					end
 				end
-				
+
 				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
 					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
 					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
@@ -899,10 +897,10 @@ local function startFlying()
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
-				
+
 				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
-			
+
 			bg:Destroy()
 			bv:Destroy()
 			humanoid.PlatformStand = false
@@ -914,16 +912,16 @@ end
 
 local function stopFlying()
 	if nowe == false then return end
-	
+
 	nowe = false
 	tpwalking = false
 	local player = Players.LocalPlayer
 	local character = player.Character
 	if not character then return end
-	
+
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
-	
+
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
@@ -949,7 +947,7 @@ flygroup:AddToggle("FlyToggle", {
 		if debugmode then
 			print("[DEBUG]: Fly Toggle " .. (Value and "On" or "Off"))
 		end
-		
+
 		if Value then
 			startFlying()
 		else
@@ -974,7 +972,7 @@ flygroup:AddSlider("FlySpeed", {
 		if debugmode then
 			print("[DEBUG]: Fly Speed set to " .. Value)
 		end
-		
+
 		if nowe == true then
 			tpwalking = false
 			for i = 1, speeds do
@@ -1011,7 +1009,7 @@ local statusgroup = Tabs.Main:AddLeftGroupbox("Status", "activity")
 
 local fpslabel = statusgroup:AddLabel("FPS: 0")
 local pinglabel = statusgroup:AddLabel("PING: 0")
-local versionlabel = statusgroup:AddLabel("UNXHub Ver.: " .. version)
+local versionlabel = statusgroup:AddLabel("UNXHub Ver.: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown"))
 
 spawn(function()
 	while true do
@@ -1316,10 +1314,10 @@ gamegroup:AddCheckbox("AntiLag", {
 		if Value then
 			originalsettings.RenderDistance = workspace.CurrentCamera.RenderDistance
 			originalsettings.QualityLevel = settings().Rendering.QualityLevel
-			
+
 			workspace.CurrentCamera.RenderDistance = 50
 			settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-			
+
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("Texture") or obj:IsA("Decal") then
 					originaltextures[obj] = obj.Texture
@@ -1335,14 +1333,14 @@ gamegroup:AddCheckbox("AntiLag", {
 			if originalsettings.QualityLevel then
 				settings().Rendering.QualityLevel = originalsettings.QualityLevel
 			end
-			
+
 			for obj, texture in pairs(originaltextures) do
 				if obj and obj.Parent then
 					obj.Texture = texture
 				end
 			end
 			originaltextures = {}
-			
+
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
 					obj.Enabled = true
@@ -2038,22 +2036,22 @@ Library:OnUnload(function()
 	for player, _ in pairs(espobjects) do
 		removeesp(player)
 	end
-	
+
 	for _, player in pairs(Players:GetPlayers()) do
 		removehighlight(player)
 	end
-	
+
 	RunService:UnbindFromRenderStep("Tracers")
 	RunService:UnbindFromRenderStep("SkeletonESP")
-	
+
 	if fovcircle then
 		fovcircle:Remove()
 	end
-	
+
 	for _, line in ipairs(tracerlines) do
 		line:Destroy()
 	end
-	
+
 	for _, line in ipairs(skeletonlines) do
 		line:Destroy()
 	end
@@ -2075,7 +2073,7 @@ RunService.RenderStepped:Connect(function()
 	if espenabled then
 		updateesp()
 	end
-	
+
 	if outlineenabled then
 		for userid, highlight in pairs(activehighlights) do
 			if highlight then
@@ -2084,7 +2082,7 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
-	
+
 	updateaimlock()
 	updatefovcircle()
 end)
@@ -2126,7 +2124,7 @@ modules.print("green",  "| | | | . ` | /   \\ |  _  | | | | '_ \\  ", 16)
 modules.print("blue",   "| |_| | |\\  |/ /^\\ \\| | | | |_| | |_) | ", 16)
 modules.print("purple", " \\___/\\_| \\_/\\/   \\/\\_| |_/\\__,_|_.__/  ", 16)
 
-modules.print("green", "UNXHub ".. version .." :D", 16)
+modules.print("green", "UNXHub ".. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .." :D", 16)
 modules.print("green", "Player Name: " .. player.Name, 16)
 modules.print("green", "Display Name: " .. player.DisplayName, 16)
 modules.print("green", "UserID: " .. player.UserId, 16)
