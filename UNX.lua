@@ -104,5 +104,5 @@ else
 	end)
 end
 t:Disconnect()
-task.wait(3)
+task.wait(1)
 d:Destroy()
