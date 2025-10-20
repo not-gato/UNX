@@ -1,7 +1,10 @@
+--[[
+UNX LOADER
+]]
+
 local a = game:GetService("Players")
 local b = a.LocalPlayer
 local c = game:GetService("CoreGui")
-
 local d = Instance.new("ScreenGui")
 d.Name = "UNXLoader"
 d.ResetOnSpawn = false
@@ -63,26 +66,26 @@ local l = Instance.new("UICorner")
 l.CornerRadius = UDim.new(0, 2)
 l.Parent = k
 
-local s = game:GetService("RunService")
-local t = s.Heartbeat:Connect(function()
-	local u = tick() % 5 / 5
-	k.BackgroundColor3 = Color3.fromHSV(u, 1, 1)
+local m = game:GetService("RunService")
+local n = m.Heartbeat:Connect(function()
+	local o = tick() % 5 / 5
+	k.BackgroundColor3 = Color3.fromHSV(o, 1, 1)
 end)
 
-local m = game:GetService("TweenService")
-local n = TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-local o = m:Create(k, n, {Position = UDim2.new(1, -80, 0, 0)})
-o:Play()
+local p = game:GetService("TweenService")
+local q = TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
+local r = p:Create(k, q, {Position = UDim2.new(1, -80, 0, 0)})
+r:Play()
 
-local function p(q)
-	h.Text = q
+local function s(t)
+	h.Text = t
 end
 
-p("Creating Global Variables...")
+s("Creating Global Variables...")
 task.wait(0.5)
 
 getgenv().unxshared = {
-	version = "2.1.0",
+	version = "2.2.0",
 	gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
@@ -90,42 +93,47 @@ getgenv().unxshared = {
 	isloaded = false
 }
 
-p("Checking Game ID...")
+s("Checking Game ID...")
 task.wait(0.5)
 
-local r = game.PlaceId
-if r == 1240123653 then
+local u = game.PlaceId
+local v = {
+	[1240123653] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua",
+	[12240122896] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/FigureL.lua"
+}
+
+if v[u] then
 	getgenv().unxshared.issupported = true
 else
 	getgenv().unxshared.issupported = false
 end
 
-p("Loading Script...")
+s("Loading Script...")
 task.wait(0.5)
 
-local v, w
-if getgenv().unxshared.issupported and r == 1240123653 then
-	v, w = pcall(function()
-		loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua"))()
+local w, x
+if getgenv().unxshared.issupported then
+	w, x = pcall(function()
+		loadstring(game:HttpGet(v[u]))()
 	end)
 else
-	v, w = pcall(function()
+	w, x = pcall(function()
 		loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Universal.lua"))()
 	end)
 end
 
-if v then
+if w then
 	getgenv().unxshared.isloaded = true
-	p("Complete!")
+	s("Complete!")
 else
 	getgenv().unxshared.isloaded = false
-	p("Error: " .. tostring(w))
-	warn("UNXHub Loader Error:", w)
+	s("Error: " .. tostring(x))
+	warn("UNXHub Loader Error:", x)
 	pcall(function()
-		setclipboard(tostring(w))
+		setclipboard(tostring(x))
 	end)
 end
 
-t:Disconnect()
+n:Disconnect()
 task.wait(0.1)
 d:Destroy()
