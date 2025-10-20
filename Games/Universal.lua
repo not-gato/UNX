@@ -1,11 +1,10 @@
--- hey v3
+-- now 2 games supported!
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
 local Options = Library.Options
 local Toggles = Library.Toggles
-local modules = loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/ColorPrint.lua", true))()
 
 local Window = Library:CreateWindow({
     Title = "UNXHub",
@@ -2117,16 +2116,3 @@ if not player then
 	player = Players.PlayerAdded:Wait()
 end
 
-modules.print("red",    " _   _ _   _ __   __ _   _       _      ", 16)
-modules.print("orange", "| | | | \\ | |\\ \\ / /| | | |     | |     ", 16)
-modules.print("yellow", "| | | |  \\| | \\ V / | |_| |_   _| |__   ", 16)
-modules.print("green",  "| | | | . ` | /   \\ |  _  | | | | '_ \\  ", 16)
-modules.print("blue",   "| |_| | |\\  |/ /^\\ \\| | | | |_| | |_) | ", 16)
-modules.print("purple", " \\___/\\_| \\_/\\/   \\/\\_| |_/\\__,_|_.__/  ", 16)
-
-modules.print("green", "UNXHub ".. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .." :D", 16)
-modules.print("green", "Player Name: " .. player.Name, 16)
-modules.print("green", "Display Name: " .. player.DisplayName, 16)
-modules.print("green", "UserID: " .. player.UserId, 16)
-modules.print("green", "Local Executor: " .. exec, 16)
-modules.print("green", "Local Executor Level:", 16)
