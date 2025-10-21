@@ -2054,6 +2054,8 @@ Library:OnUnload(function()
 	for _, line in ipairs(skeletonlines) do
 		line:Destroy()
 	end
+
+	getgenv().unxshared.isloaded = false
 end)
 
 task.spawn(function()
