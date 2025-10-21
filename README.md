@@ -1,35 +1,40 @@
 # UNXHub
 
-**Version:** **2.1.0**  
-**Tested Executors:** **Ronix (1.1.3b)**, **Codex**, **Delta**, **F^W (FrostWare, 1.1.3b)**
+**Version:** 2.1.0  
+**Tested Executors:** Ronix (1.1.3b), Codex, Delta, F^W (FrostWare 1.1.3b)
 
----
+## About
 
-## **About**
+UNXHub started as a personal project to explore LUAU and learn new things.  
+It is fully open-source. You can use it, modify it, or take parts of the code for your own projects. No credit is needed.  
 
-**UNXHub** is a fully **open-source** project that anyone can **use**, **modify**, or **learn from**.  
-You’re free to **mod it**, **take parts of the code**, or **use it as a reference** — **no credit required**.  
+It is meant to be a simple way to experiment and learn.
 
-This project was created for **personal learning** and **experimentation** with **LUAU**.
+## Features
 
----
+- Change WalkSpeed  
+- Change JumpPower  
+- Adjust Max Zoom  
+- Change Gravity  
+- Infinite Jump  
+- ESP (all types)  
+- Outline (all types)  
+- Tracers (all types)  
+- Skeleton (all types)  
+- Set FPS Cap  
+- Join a server by JobID  
+- Copy the current server JobID  
+- Rejoin the server easily  
+- Adjust UI scale  
+- Player AimLock  
+- And more
 
-## **Features**
+## Screenshot
 
-- **WalkSpeed Changer**  
-- **JumpPower Changer**  
-- **Max Zoom Changer**  
-- **Gravity Changer**  
-- **Infinite Jump**  
-- **ESP (All)**  
-- **Outline (All)**  
-- **Tracers (All)**  
-- **Skeleton (All)**  
-- **FPS Cap Setter**  
-- **Join Server by JobID**  
-- **Copy Current Server JobID**  
-- **Rejoin Server**  
-- **UI Scale Adjustment**
-- **Player AimLock**
-- **And Much Much More!**
----
+![UNXHub Preview](https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Other/screenshot.png)
+
+## Notes
+
+This project is mainly for learning and experimenting.  
+You are free to fork it, modify it, or use it as a reference.  
+There are no rules or credit requirements. It is just a tool for anyone curious about LUAU.
