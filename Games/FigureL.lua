@@ -1373,6 +1373,7 @@ Library:OnUnload(function()
     if State.NoclipActive then DisableNoclip() end
     if State.CustomWalkSpeedActive then ResetWalkSpeed() end
     if State.CustomFOVActive then ResetFOV() end
+    getgenv().unxshared.isloaded = false
 end)
 
 SaveManager:LoadAutoloadConfig()
