@@ -32,6 +32,7 @@ It is meant to be a simple way to experiment and learn.
 ## Screenshot
 
 ![UNXHub Preview](https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Other/screenshot.png)
+*AI Upscaled*
 
 ## Notes
 
