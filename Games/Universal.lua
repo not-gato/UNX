@@ -1,5 +1,9 @@
 -- now 2 games supported!
+setclipboard("if ur seringa this is beacuse iam testing new loader!, sorry if the script doesnt load :(")
 
+eprus(6)
+-- random lines to test error catching
+eeei87
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
