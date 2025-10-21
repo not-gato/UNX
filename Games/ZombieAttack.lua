@@ -1179,4 +1179,6 @@ a:OnUnload(function()
 	if ac then
 		ac:Destroy()
 	end
+
+	getgenv().unxshared.isloaded = false
 end)
