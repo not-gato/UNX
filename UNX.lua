@@ -20,7 +20,6 @@ e.Parent = d
 local f = Instance.new("UICorner")
 f.CornerRadius = UDim.new(0, 12)
 f.Parent = e
--- Added drag functionality
 local dragToggle = nil
 local dragSpeed = 0
 local dragInput = nil
@@ -164,7 +163,7 @@ addConsoleMessage(t)
 end
 s("UNXHub Loader v2.1.0 initialized")
 task.wait(0.3)
-s("Creating global variables...")
+s("Creating global variables... | Dev Note: ".. getgenv().unxshared.gamename)
 task.wait(0.4)
 getgenv().unxshared = {
 version = "2.1.0",
@@ -173,6 +172,7 @@ issupported = false,
 playername = b.Name,
 playerid = b.UserId,
 isloaded = false
+devnote = "Rake Knows 💔"
 }
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
 task.wait(0.3)
