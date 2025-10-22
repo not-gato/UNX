@@ -163,7 +163,7 @@ addConsoleMessage(t)
 end
 s("UNXHub Loader v2.1.0 initialized")
 task.wait(0.3)
-s("Creating global variables... | Dev Note: ".. getgenv().unxshared.gamename)
+s("Creating global variables...")
 task.wait(0.4)
 getgenv().unxshared = {
 version = "2.1.0",
@@ -190,7 +190,7 @@ local v = {
 local w, x
 if v[u] then
 getgenv().unxshared.issupported = true
-s("Game verified, loading " .. getgenv().unxshared.gamename)
+s("Game verified, loading " .. getgenv().unxshared.gamename .." | Dev Note: ".. getgenv().unxshared.devnote)
 task.wait(0.4)
 s("Fetching game-specific script...")
 task.wait(0.3)
