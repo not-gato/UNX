@@ -171,7 +171,7 @@ gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Na
 issupported = false,
 playername = b.Name,
 playerid = b.UserId,
-isloaded = false
+isloaded = false,
 devnote = "Rake Knows 💔"
 }
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
