@@ -1,7 +1,7 @@
 --[[IF UR HERE FOR THE SOURCE CODE; CHECK GAMES FOLDER!UNX LOADER]]
 
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
-warn("UNXHub Loader is already loaded. Skipping initialization.")
+warn("UNXHub is already loaded. Skipping initialization.")
 return
 end
 local a = game:GetService("Players")
@@ -186,6 +186,7 @@ s("Game ID: " .. tostring(u))
 task.wait(0.3)
 local v = {
 [1240123653] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua",
+[1632210982] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua",
 [12240122896] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/FigureL.lua"
 }
 local w, x
