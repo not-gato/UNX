@@ -1,4 +1,5 @@
 --[[IF UR HERE FOR THE SOURCE CODE; CHECK GAMES FOLDER!UNX LOADER]]
+loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Research.lua",true))()
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub Loader is already loaded. Skipping initialization.")
 return
