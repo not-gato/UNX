@@ -1,3 +1,10 @@
+-- what is ts diddy blud doing in the calculadora
+--[[ PATCH NOTES:
++ FLY
++ FLY SPEED
+/ MINOR FIXES
+:)]]
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -7,8 +14,8 @@ local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
 
+local LocalPlayer = Players.LocalPlayer
 local Assets = workspace:WaitForChild("Map"):WaitForChild("Assets")
 
 local BOOKSHELF_NAME = "Super Cool Bookshelf With Hint Book"
@@ -17,11 +24,13 @@ local DOOR_CFRAME = CFrame.new(
     -0.998881638, 0.00240474031, -0.0472193025,
     -7.93140771e-08, 0.998705626, 0.0508628227,
     0.0472804941, 0.0508059449, -0.997588754)
+
 local BPAPER_CFRAME = CFrame.new(
     -53.6578979, 11.3413105, -21.9969749,
     0.423553586, -0.90396452, -0.0587408952,
     0.1525819, 0.00727360509, 0.988264024,
     -0.892928481, -0.427545547, 0.141009375)
+
 local SAFE_POSITIONS = {
     CFrame.new(
         -53.4432106, 14.2561035, 40.7111435,
@@ -34,8 +43,10 @@ local SAFE_POSITIONS = {
         0.940911651, 1.41327362e-07, -0.338652134,
         -1.34159876e-07, 1, 4.45730777e-08,
         0.338652134, 3.49420026e-09, 0.940911651
-    )}
+    )
+}
 
+-- Added fly state variables
 local State = {
     BookshelfESPActive = false,
     MultiEntityESPActive = false,
@@ -47,21 +58,31 @@ local State = {
     WalkSpeedValue = 16,
     CustomFOVActive = false,
     FOVValue = 70,
+    FlyActive = false,
+    FlySpeed = 1,
+    FlyConnection = nil,
+    FlyBodyGyro = nil,
+    FlyBodyVelocity = nil,
+    FlyTpWalking = false,
+    
     BookshelfESPConnection = nil,
     MultiEntityESPConnection = nil,
     MultiEntityTrackingConnection = nil,
     WalkSpeedConnection = nil,
     NoclipConnection = nil,
     FOVConnection = nil,
+    
     BookshelfHighlights = {},
     BookshelfBillboards = {},
     EntityHighlights = {},
     EntityBillboards = {},
+    
     BookshelfESPColor = Color3.fromRGB(170, 0, 255),
     FigureESPColor = Color3.fromRGB(255, 0, 0),
     DrakobloxxerESPColor = Color3.fromRGB(255, 165, 0),
     SCP939ESPColor = Color3.fromRGB(128, 0, 128),
     FullBrightColor = Color3.fromRGB(255, 255, 255),
+    
     OriginalLighting = {
         Brightness = Lighting.Brightness,
         Ambient = Lighting.Ambient,
@@ -72,6 +93,7 @@ local State = {
         FogEnd = Lighting.FogEnd,
         FogStart = Lighting.FogStart
     },
+    
     OriginalFOV = 70,
     SafePositionIndex = 1
 }
@@ -141,6 +163,185 @@ local function CheckSafePositionsBlocked(entities)
     end
     
     return blockedCount >= 2
+end
+
+-- Added fly functions
+local function EnableFly()
+    if State.FlyActive then
+        return false, "Fly is already active!"
+    end
+    
+    State.FlyActive = true
+    
+    local character = LocalPlayer.Character
+    if not character then 
+        State.FlyActive = false
+        return false, "Character not found!"
+    end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then 
+        State.FlyActive = false
+        return false, "Humanoid not found!"
+    end
+    
+    -- Start tpwalking
+    State.FlyTpWalking = true
+    task.spawn(function()
+        while State.FlyTpWalking do
+            task.wait()
+            local chr = LocalPlayer.Character
+            local hum = chr and chr:FindFirstChildOfClass("Humanoid")
+            if chr and hum and hum.Parent and hum.MoveDirection.Magnitude > 0 then
+                chr:TranslateBy(hum.MoveDirection * State.FlySpeed)
+            end
+        end
+    end)
+    
+    -- Disable animations
+    if character:FindFirstChild("Animate") then
+        character.Animate.Disabled = true
+    end
+    
+    for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
+        track:AdjustSpeed(0)
+    end
+    
+    -- Disable humanoid states
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+    humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+    humanoid.PlatformStand = true
+    
+    -- Create body objects
+    local rootPart = character.HumanoidRootPart
+    local attachPart = (humanoid.RigType == Enum.HumanoidRigType.R6) and character.Torso or character.UpperTorso
+    
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bodyGyro.CFrame = rootPart.CFrame
+    bodyGyro.Parent = attachPart
+    State.FlyBodyGyro = bodyGyro
+    
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
+    bodyVelocity.Parent = attachPart
+    State.FlyBodyVelocity = bodyVelocity
+    
+    -- Fly loop
+    State.FlyConnection = RunService.RenderStepped:Connect(function()
+        if not State.FlyActive then return end
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then
+            DisableFly()
+            return
+        end
+        
+        local cam = workspace.CurrentCamera
+        local moveDir = hum.MoveDirection
+        
+        if moveDir.Magnitude > 0 then
+            local vel = (cam.CFrame.LookVector * -moveDir.Z + cam.CFrame.RightVector * moveDir.X) * State.FlySpeed
+            if State.FlyBodyVelocity then
+                State.FlyBodyVelocity.Velocity = vel + Vector3.new(0, 0.1, 0)
+            end
+        else
+            if State.FlyBodyVelocity then
+                State.FlyBodyVelocity.Velocity = Vector3.new(0, 0.1, 0)
+            end
+        end
+        
+        if State.FlyBodyGyro then
+            State.FlyBodyGyro.CFrame = cam.CFrame
+        end
+    end)
+    
+    return true, "Fly Enabled"
+end
+
+local function DisableFly()
+    if not State.FlyActive then
+        return false, "Fly is not active!"
+    end
+    
+    State.FlyActive = false
+    State.FlyTpWalking = false
+    
+    if State.FlyConnection then
+        State.FlyConnection:Disconnect()
+        State.FlyConnection = nil
+    end
+    
+    if State.FlyBodyGyro then
+        State.FlyBodyGyro:Destroy()
+        State.FlyBodyGyro = nil
+    end
+    
+    if State.FlyBodyVelocity then
+        State.FlyBodyVelocity:Destroy()
+        State.FlyBodyVelocity = nil
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then return true, "Fly Disabled" end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = false
+        
+        -- Re-enable states
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+        humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+    end
+    
+    if character:FindFirstChild("Animate") then
+        character.Animate.Disabled = false
+    end
+    
+    return true, "Fly Disabled"
+end
+
+local function SetFlySpeed(speed)
+    local speedNum = tonumber(speed)
+    if not speedNum then
+        return false, "Invalid Fly Speed value!"
+    end
+    
+    State.FlySpeed = speedNum
+    return true, "Fly Speed set to " .. speedNum
 end
 
 local function EnableBookshelfESP()
@@ -968,10 +1169,12 @@ local function Revive()
     end
 end
 
+-- UI Setup
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
 local Options = Library.Options
 local Toggles = Library.Toggles
 
@@ -991,6 +1194,7 @@ local Tabs = {
     Settings = Window:AddTab("UI Settings", "settings"),
 }
 
+-- Local Player Group
 local LocalPlayerGroup = Tabs.Main:AddLeftGroupbox("Local-Player", "user")
 
 LocalPlayerGroup:AddSlider("WalkSpeedSlider", {
@@ -1061,6 +1265,7 @@ LocalPlayerGroup:AddLabel("Break Velocity Keybind"):AddKeyPicker("BreakVelocityK
     end,
 })
 
+-- Features Group
 local FeaturesGroup = Tabs.Main:AddLeftGroupbox("Features", "shield")
 
 FeaturesGroup:AddToggle("MultiEntityTracking", {
@@ -1085,7 +1290,48 @@ FeaturesGroup:AddLabel("Auto-Dodge Keybind"):AddKeyPicker("MultiEntityTrackingKe
     end,
 })
 
+-- Utility Group
 local UtilityGroup = Tabs.Main:AddRightGroupbox("Utility", "wrench")
+
+-- Added fly speed slider with increased range (1-50)
+UtilityGroup:AddSlider("FlySpeedSlider", {
+    Text = "Fly Speed",
+    Default = 1,
+    Min = 1,
+    Max = 50,
+    Rounding = 0,
+    Compact = false,
+    Callback = function(value)
+        SetFlySpeed(value)
+    end,
+})
+
+UtilityGroup:AddToggle("Fly", {
+    Text = "Enable Fly",
+    Tooltip = "Fly around the map",
+    Default = false,
+    Callback = function(value)
+        if value then
+            EnableFly()
+        else
+            DisableFly()
+        end
+    end,
+})
+
+UtilityGroup:AddLabel("Fly Keybind"):AddKeyPicker("FlyKey", {
+    Default = "F",
+    Text = "Fly",
+    Mode = "Toggle",
+    Callback = function()
+        Toggles.Fly:SetValue(not Toggles.Fly.Value)
+    end,
+})
+
+-- Added warning label with rich text formatting
+UtilityGroup:AddLabel("<font color='rgb(255,0,0)'><u>WARNING!</u></font> This Fly May Be <u>Patched Or Detected</u> On The Future!", true)
+
+UtilityGroup:AddDivider()
 
 UtilityGroup:AddButton({
     Text = "Revive",
@@ -1140,6 +1386,7 @@ UtilityGroup:AddLabel("TP BPaper Keybind"):AddKeyPicker("TeleportBPaperKey", {
     end,
 })
 
+-- ESP Group
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox("ESP", "eye")
 
 ESPGroup:AddLabel("Bookshelf ESP")
@@ -1227,6 +1474,7 @@ ESPGroup:AddLabel("SCP-939 ESP Color"):AddColorPicker("SCP939ESPColor", {
     end,
 })
 
+-- Camera Group
 local CameraGroup = Tabs.Visuals:AddRightGroupbox("Camera", "camera")
 
 CameraGroup:AddSlider("FOVSlider", {
@@ -1322,6 +1570,7 @@ CameraGroup:AddToggle("AntiLag", {
     end,
 })
 
+-- Settings
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
@@ -1373,6 +1622,8 @@ Library:OnUnload(function()
     if State.NoclipActive then DisableNoclip() end
     if State.CustomWalkSpeedActive then ResetWalkSpeed() end
     if State.CustomFOVActive then ResetFOV() end
+    if State.FlyActive then DisableFly() end
+    
     getgenv().unxshared.isloaded = false
 end)
 
