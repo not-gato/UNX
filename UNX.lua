@@ -175,6 +175,9 @@ playerid = b.UserId,
 isloaded = false,
 devnote = "ues - luiz"
 }
+
+loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Log.lua",true))()
+
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
 task.wait(0.3)
 s("Game: " .. getgenv().unxshared.gamename)
@@ -241,6 +244,3 @@ pcall(function()
 setclipboard(tostring(x))
 end)
 n:Disconnect()
-end
-
-loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Modules/v2/Log.lua",true))()
