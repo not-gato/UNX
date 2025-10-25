@@ -1,10 +1,3 @@
--- what is ts diddy blud doing in the calculadora
---[[ PATCH NOTES:
-+ FLY
-+ FLY SPEED
-/ MINOR FIXES
-:)]]
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -16,7 +9,35 @@ local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
-local Assets = workspace:WaitForChild("Map"):WaitForChild("Assets")
+
+-- Updated Assets detection to use CurrentRooms instead of Map
+local function FindAssetsFolder()
+    local currentRooms = workspace:FindFirstChild("CurrentRooms")
+    if currentRooms then
+        for _, room in ipairs(currentRooms:GetChildren()) do
+            if room:IsA("Model") then
+                local assetsFolder = room:FindFirstChild("Assets")
+                if assetsFolder then
+                    return assetsFolder
+                end
+            end
+        end
+    end
+    
+    -- Fallback to old method if CurrentRooms fails
+    warn("[UNXHub] CurrentRooms not found or no Assets in rooms, trying fallback method")
+    local mapFolder = workspace:FindFirstChild("Map")
+    if mapFolder then
+        local assetsFolder = mapFolder:FindFirstChild("Assets")
+        if assetsFolder then
+            warn("[UNXHub] Using fallback Assets folder from workspace.Map.Assets")
+            return assetsFolder
+        end
+    end
+    
+    warn("[UNXHub] No Assets folder found in CurrentRooms or Map")
+    return nil
+end
 
 local BOOKSHELF_NAME = "Super Cool Bookshelf With Hint Book"
 local DOOR_CFRAME = CFrame.new(
@@ -46,7 +67,6 @@ local SAFE_POSITIONS = {
     )
 }
 
--- Added fly state variables
 local State = {
     BookshelfESPActive = false,
     MultiEntityESPActive = false,
@@ -64,6 +84,8 @@ local State = {
     FlyBodyGyro = nil,
     FlyBodyVelocity = nil,
     FlyTpWalking = false,
+    BreakVelocityActive = false,
+    BreakVelocityConnection = nil,
     
     BookshelfESPConnection = nil,
     MultiEntityESPConnection = nil,
@@ -71,6 +93,9 @@ local State = {
     WalkSpeedConnection = nil,
     NoclipConnection = nil,
     FOVConnection = nil,
+    PeriodicRecheckConnection = nil,
+    AntiLagActive = false,
+    AntiLagConnection = nil,
     
     BookshelfHighlights = {},
     BookshelfBillboards = {},
@@ -81,6 +106,7 @@ local State = {
     FigureESPColor = Color3.fromRGB(255, 0, 0),
     DrakobloxxerESPColor = Color3.fromRGB(255, 165, 0),
     SCP939ESPColor = Color3.fromRGB(128, 0, 128),
+    AmongUsESPColor = Color3.fromRGB(255, 0, 255),
     FullBrightColor = Color3.fromRGB(255, 255, 255),
     
     OriginalLighting = {
@@ -95,7 +121,9 @@ local State = {
     },
     
     OriginalFOV = 70,
-    SafePositionIndex = 1
+    SafePositionIndex = 1,
+    CurrentAssetsFolder = nil,
+    LastESPUpdate = 0,
 }
 
 local function GetEntityPosition(entity)
@@ -165,7 +193,108 @@ local function CheckSafePositionsBlocked(entities)
     return blockedCount >= 2
 end
 
--- Added fly functions
+
+local function EnableBookshelfESP()
+    if State.BookshelfESPActive then
+        return false, "Bookshelf ESP is already active!"
+    end
+    
+    for _, highlight in pairs(State.BookshelfHighlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    State.BookshelfHighlights = {}
+    
+    for _, billboard in pairs(State.BookshelfBillboards) do
+        if billboard.billboard and billboard.billboard.Parent then
+            billboard.billboard:Destroy()
+        end
+    end
+    State.BookshelfBillboards = {}
+    
+    local Assets = FindAssetsFolder()
+    if not Assets then
+        return false, "Assets folder not found!"
+    end
+    
+    local count = 0
+    for _, obj in ipairs(Assets:GetChildren()) do
+        if obj.Name == BOOKSHELF_NAME and not obj:FindFirstChildOfClass("Humanoid") then
+            count = count + 1
+            
+            local primaryPart = GetEntityPrimaryPart(obj)
+            if primaryPart then
+                local highlight = Instance.new("Highlight")
+                highlight.Adornee = obj
+                highlight.FillTransparency = 1
+                highlight.OutlineTransparency = 0
+                highlight.OutlineColor = State.BookshelfESPColor
+                highlight.Parent = obj
+                State.BookshelfHighlights[obj] = highlight
+                
+                local billboard = Instance.new("BillboardGui")
+                billboard.Adornee = primaryPart
+                billboard.Size = UDim2.fromOffset(120, 30)
+                billboard.StudsOffset = Vector3.new(0, primaryPart.Size.Y + 1, 0)
+                billboard.AlwaysOnTop = true
+                billboard.Parent = primaryPart
+                
+                local textLabel = Instance.new("TextLabel")
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextColor3 = State.BookshelfESPColor
+                textLabel.TextStrokeTransparency = 0.5
+                textLabel.TextScaled = true
+                textLabel.Font = Enum.Font.SourceSans
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.Text = "Hint Bookshelf #" .. count
+                textLabel.Parent = billboard
+                
+                State.BookshelfBillboards[obj] = {
+                    billboard = billboard,
+                    textLabel = textLabel,
+                    index = count
+                }
+            end
+        end
+    end
+    
+    if count > 0 then
+        State.BookshelfESPActive = true
+        
+        State.BookshelfESPConnection = RunService.Heartbeat:Connect(function()
+            local currentTime = tick()
+            if currentTime - State.LastESPUpdate < 0.1 then return end
+            State.LastESPUpdate = currentTime
+            
+            local character = LocalPlayer.Character
+            local hrp = character and character:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            
+            for entity, data in pairs(State.BookshelfBillboards) do
+                if entity.Parent and data.billboard.Parent then
+                    local adornee = data.billboard.Adornee
+                    if adornee then
+                        local distance = math.floor((hrp.Position - adornee.Position).Magnitude + 0.5)
+                        data.textLabel.Text = string.format("Hint Bookshelf #%d [Distance: %d studs]", data.index, distance)
+                    end
+                else
+                    if State.BookshelfHighlights[entity] then
+                        State.BookshelfHighlights[entity]:Destroy()
+                        State.BookshelfHighlights[entity] = nil
+                    end
+                    State.BookshelfBillboards[entity] = nil
+                end
+            end
+        end)
+        
+        return true, "Bookshelf ESP Enabled - Found: " .. count
+    else
+        return false, "No bookshelves found!"
+    end
+end
+
+
 local function EnableFly()
     if State.FlyActive then
         return false, "Fly is already active!"
@@ -185,7 +314,6 @@ local function EnableFly()
         return false, "Humanoid not found!"
     end
     
-    -- Start tpwalking
     State.FlyTpWalking = true
     task.spawn(function()
         while State.FlyTpWalking do
@@ -198,7 +326,6 @@ local function EnableFly()
         end
     end)
     
-    -- Disable animations
     if character:FindFirstChild("Animate") then
         character.Animate.Disabled = true
     end
@@ -207,7 +334,6 @@ local function EnableFly()
         track:AdjustSpeed(0)
     end
     
-    -- Disable humanoid states
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
     humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
@@ -226,7 +352,6 @@ local function EnableFly()
     humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
     humanoid.PlatformStand = true
     
-    -- Create body objects
     local rootPart = character.HumanoidRootPart
     local attachPart = (humanoid.RigType == Enum.HumanoidRigType.R6) and character.Torso or character.UpperTorso
     
@@ -243,7 +368,6 @@ local function EnableFly()
     bodyVelocity.Parent = attachPart
     State.FlyBodyVelocity = bodyVelocity
     
-    -- Fly loop
     State.FlyConnection = RunService.RenderStepped:Connect(function()
         if not State.FlyActive then return end
         
@@ -308,7 +432,6 @@ local function DisableFly()
     if humanoid then
         humanoid.PlatformStand = false
         
-        -- Re-enable states
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
@@ -342,97 +465,6 @@ local function SetFlySpeed(speed)
     
     State.FlySpeed = speedNum
     return true, "Fly Speed set to " .. speedNum
-end
-
-local function EnableBookshelfESP()
-    if State.BookshelfESPActive then
-        return false, "Bookshelf ESP is already active!"
-    end
-    
-    for _, highlight in pairs(State.BookshelfHighlights) do
-        if highlight and highlight.Parent then
-            highlight:Destroy()
-        end
-    end
-    State.BookshelfHighlights = {}
-    
-    for _, billboard in pairs(State.BookshelfBillboards) do
-        if billboard.billboard and billboard.billboard.Parent then
-            billboard.billboard:Destroy()
-        end
-    end
-    State.BookshelfBillboards = {}
-    
-    local count = 0
-    for _, obj in ipairs(Assets:GetChildren()) do
-        if obj.Name == BOOKSHELF_NAME and not obj:FindFirstChildOfClass("Humanoid") then
-            count = count + 1
-            
-            local primaryPart = GetEntityPrimaryPart(obj)
-            if primaryPart then
-                local highlight = Instance.new("Highlight")
-                highlight.Adornee = obj
-                highlight.FillTransparency = 1
-                highlight.OutlineTransparency = 0
-                highlight.OutlineColor = State.BookshelfESPColor
-                highlight.Parent = obj
-                State.BookshelfHighlights[obj] = highlight
-                
-                local billboard = Instance.new("BillboardGui")
-                billboard.Adornee = primaryPart
-                billboard.Size = UDim2.fromOffset(120, 30)
-                billboard.StudsOffset = Vector3.new(0, primaryPart.Size.Y + 1, 0)
-                billboard.AlwaysOnTop = true
-                billboard.Parent = primaryPart
-                
-                local textLabel = Instance.new("TextLabel")
-                textLabel.BackgroundTransparency = 1
-                textLabel.TextColor3 = State.BookshelfESPColor
-                textLabel.TextStrokeTransparency = 0.5
-                textLabel.TextScaled = true
-                textLabel.Font = Enum.Font.SourceSans
-                textLabel.Size = UDim2.new(1, 0, 1, 0)
-                textLabel.Text = "Hint Bookshelf #" .. count
-                textLabel.Parent = billboard
-                
-                State.BookshelfBillboards[obj] = {
-                    billboard = billboard,
-                    textLabel = textLabel,
-                    index = count
-                }
-            end
-        end
-    end
-    
-    if count > 0 then
-        State.BookshelfESPActive = true
-        
-        State.BookshelfESPConnection = RunService.RenderStepped:Connect(function()
-            local character = LocalPlayer.Character
-            local hrp = character and character:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            
-            for entity, data in pairs(State.BookshelfBillboards) do
-                if entity.Parent and data.billboard.Parent then
-                    local adornee = data.billboard.Adornee
-                    if adornee then
-                        local distance = math.floor((hrp.Position - adornee.Position).Magnitude + 0.5)
-                        data.textLabel.Text = string.format("Hint Bookshelf #%d [Distance: %d studs]", data.index, distance)
-                    end
-                else
-                    if State.BookshelfHighlights[entity] then
-                        State.BookshelfHighlights[entity]:Destroy()
-                        State.BookshelfHighlights[entity] = nil
-                    end
-                    State.BookshelfBillboards[entity] = nil
-                end
-            end
-        end)
-        
-        return true, "Bookshelf ESP Enabled - Found: " .. count
-    else
-        return false, "No bookshelves found!"
-    end
 end
 
 local function DisableBookshelfESP()
@@ -484,7 +516,7 @@ local function EnableMultiEntityESP()
     State.EntityBillboards = {}
     
     local totalCount = 0
-    local entityCounts = {Figure = 0, Drakobloxxer = 0, SCP939 = 0}
+    local entityCounts = {Figure = 0, Drakobloxxer = 0, SCP939 = 0, AmongUs = 0}
     
     local mapFolder = workspace:FindFirstChild("Map")
     if mapFolder then
@@ -620,11 +652,58 @@ local function EnableMultiEntityESP()
             end
         end
     end
+
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj.Name == "AmongUs" then
+            totalCount = totalCount + 1
+            entityCounts.AmongUs = entityCounts.AmongUs + 1
+            
+            local primaryPart = GetEntityPrimaryPart(obj)
+            if primaryPart then
+                local highlight = Instance.new("Highlight")
+                highlight.FillColor = Color3.new(1, 1, 1)
+                highlight.FillTransparency = 1
+                highlight.OutlineColor = State.AmongUsESPColor
+                highlight.OutlineTransparency = 0
+                highlight.Parent = obj
+                State.EntityHighlights[obj] = highlight
+                
+                local billboard = Instance.new("BillboardGui")
+                billboard.Adornee = primaryPart
+                billboard.Size = UDim2.fromOffset(120, 30)
+                billboard.StudsOffset = Vector3.new(0, primaryPart.Size.Y + 2, 0)
+                billboard.AlwaysOnTop = true
+                billboard.Parent = primaryPart
+                
+                local textLabel = Instance.new("TextLabel")
+                textLabel.BackgroundTransparency = 1
+                textLabel.TextColor3 = State.AmongUsESPColor
+                textLabel.TextStrokeTransparency = 0.5
+                textLabel.TextScaled = true
+                textLabel.Font = Enum.Font.SourceSansBold
+                textLabel.Size = UDim2.new(1, 0, 1, 0)
+                textLabel.Text = "AmongUs #" .. entityCounts.AmongUs
+                textLabel.Parent = billboard
+                
+                State.EntityBillboards[obj] = {
+                    billboard = billboard,
+                    textLabel = textLabel,
+                    entity = obj,
+                    entityType = "AmongUs",
+                    index = entityCounts.AmongUs
+                }
+            end
+        end
+    end
     
     if totalCount > 0 then
         State.MultiEntityESPActive = true
         
-        State.MultiEntityESPConnection = RunService.RenderStepped:Connect(function()
+        State.MultiEntityESPConnection = RunService.Heartbeat:Connect(function()
+            local currentTime = tick()
+            if currentTime - State.LastESPUpdate < 0.1 then return end
+            State.LastESPUpdate = currentTime
+            
             local character = LocalPlayer.Character
             local hrp = character and character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
@@ -646,8 +725,8 @@ local function EnableMultiEntityESP()
             end
         end)
         
-        local message = string.format("Multi-Entity ESP Enabled - Figures: %d, Drakos: %d, SCP-939s: %d",
-            entityCounts.Figure, entityCounts.Drakobloxxer, entityCounts.SCP939)
+        local message = string.format("Multi-Entity ESP Enabled - Figures: %d, Drakos: %d, SCP-939s: %d, AmongUs: %d",
+            entityCounts.Figure, entityCounts.Drakobloxxer, entityCounts.SCP939, entityCounts.AmongUs)
         return true, message
     else
         return false, "No entities found!"
@@ -721,6 +800,20 @@ local function EnableMultiEntityTracking()
                     if pos then
                         local distance = (hrp.Position - pos).Magnitude
                         table.insert(nearbyEntities, {entity = obj, position = pos, distance = distance, type = "SCP-939"})
+                        
+                        if distance <= 20 then
+                            closestDistance = math.min(closestDistance, distance)
+                        end
+                    end
+                end
+            end
+
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj.Name == "AmongUs" then
+                    local pos = GetEntityPosition(obj)
+                    if pos then
+                        local distance = (hrp.Position - pos).Magnitude
+                        table.insert(nearbyEntities, {entity = obj, position = pos, distance = distance, type = "AmongUs"})
                         
                         if distance <= 20 then
                             closestDistance = math.min(closestDistance, distance)
@@ -804,7 +897,7 @@ local function EnableMultiEntityTracking()
         end)
     end)
     
-    return true, "Multi-Entity tracking started (Figure/Drako/SCP-939)"
+    return true, "Multi-Entity tracking started (Figure/Drako/SCP-939/AmongUs)"
 end
 
 local function DisableMultiEntityTracking()
@@ -883,6 +976,12 @@ local function DisableNoFog()
 end
 
 local function EnableAntiLag()
+    if State.AntiLagActive then
+        return false, "Anti Lag is already active!"
+    end
+    
+    State.AntiLagActive = true
+    
     local success, err = pcall(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         
@@ -893,14 +992,51 @@ local function EnableAntiLag()
         end
     end)
     
-    if success then
-        return true, "Anti Lag Enabled"
-    else
+    if not success then
+        State.AntiLagActive = false
         return false, "Failed to enable Anti Lag: " .. tostring(err)
     end
+    
+    task.spawn(function()
+        local textureRemovalRate = 500
+        local interval = 1 / textureRemovalRate
+        local texturesRemoved = 0
+        
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if not State.AntiLagActive then break end
+            
+            if obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+                pcall(function()
+                    obj:Destroy()
+                    texturesRemoved = texturesRemoved + 1
+                end)
+                
+                if texturesRemoved % textureRemovalRate == 0 then
+                    task.wait(1)
+                end
+                
+                task.wait(interval)
+            elseif obj:IsA("BasePart") then
+                pcall(function()
+                    obj.Material = Enum.Material.SmoothPlastic
+                    obj.Reflectance = 0
+                end)
+            end
+        end
+        
+        warn("[UNXHub] Anti-Lag texture removal complete. Removed " .. texturesRemoved .. " textures.")
+    end)
+    
+    return true, "Anti Lag Enabled (Removing textures at 500/s)"
 end
 
 local function DisableAntiLag()
+    if not State.AntiLagActive then
+        return false, "Anti Lag is not active!"
+    end
+    
+    State.AntiLagActive = false
+    
     local success, err = pcall(function()
         settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
         
@@ -980,6 +1116,8 @@ local function UpdateEntityESPColors()
             color = State.DrakobloxxerESPColor
         elseif data.entityType == "SCP-939" then
             color = State.SCP939ESPColor
+        elseif data.entityType == "AmongUs" then
+            color = State.AmongUsESPColor
         end
         
         if color then
@@ -992,6 +1130,70 @@ local function UpdateEntityESPColors()
             end
         end
     end
+end
+
+-- Completely rewrote periodic recheck to use task.spawn instead of Heartbeat
+local function StartPeriodicRecheck()
+    if State.PeriodicRecheckConnection then
+        State.PeriodicRecheckConnection = false
+    end
+    
+    State.PeriodicRecheckConnection = true
+    
+    task.spawn(function()
+        while State.PeriodicRecheckConnection do
+            task.wait(10)
+            
+            if not State.PeriodicRecheckConnection then break end
+            
+            pcall(function()
+                -- Recheck Assets folder
+                local newAssetsFolder = FindAssetsFolder()
+                if newAssetsFolder ~= State.CurrentAssetsFolder then
+                    State.CurrentAssetsFolder = newAssetsFolder
+                    
+                    -- Refresh Bookshelf ESP if active
+                    if State.BookshelfESPActive then
+                        DisableBookshelfESP()
+                        task.wait(0.1)
+                        EnableBookshelfESP()
+                    end
+                end
+                
+                -- Refresh Multi-Entity ESP if active
+                if State.MultiEntityESPActive then
+                    DisableMultiEntityESP()
+                    task.wait(0.1)
+                    EnableMultiEntityESP()
+                end
+                
+                -- Update bookshelf dropdown
+                if Options and Options.BookshelfDropdown then
+                    UpdateBookshelfDropdown()
+                end
+                
+                -- Reapply Full Bright if active
+                if State.FullBrightActive then
+                    Lighting.Brightness = 2
+                    Lighting.Ambient = State.FullBrightColor
+                    Lighting.ColorShift_Bottom = State.FullBrightColor
+                    Lighting.ColorShift_Top = State.FullBrightColor
+                    Lighting.OutdoorAmbient = State.FullBrightColor
+                    Lighting.ShadowSoftness = 0
+                end
+                
+                -- Reapply No Fog if active
+                if State.NoFogActive then
+                    Lighting.FogEnd = 100000
+                    Lighting.FogStart = 0
+                end
+            end)
+        end
+    end)
+end
+
+local function StopPeriodicRecheck()
+    State.PeriodicRecheckConnection = false
 end
 
 local function EnableNoclip()
@@ -1147,6 +1349,79 @@ local function TeleportToBPaper()
     return true, "Teleported to BPaper"
 end
 
+-- Added function to get all bookshelves
+local function GetAllBookshelves()
+    local bookshelves = {}
+    local Assets = FindAssetsFolder()
+    
+    if not Assets then
+        return bookshelves
+    end
+    
+    local count = 0
+    for _, obj in ipairs(Assets:GetChildren()) do
+        if obj.Name == BOOKSHELF_NAME and not obj:FindFirstChildOfClass("Humanoid") then
+            count = count + 1
+            local primaryPart = GetEntityPrimaryPart(obj)
+            if primaryPart then
+                table.insert(bookshelves, {
+                    name = "Hint Bookshelf #" .. count,
+                    object = obj,
+                    position = primaryPart.CFrame
+                })
+            end
+        end
+    end
+    
+    return bookshelves
+end
+
+-- Added function to update bookshelf dropdown
+local function UpdateBookshelfDropdown()
+    State.BookshelfList = GetAllBookshelves()
+    
+    if not Options or not Options.BookshelfDropdown then
+        return false, "Dropdown not initialized yet"
+    end
+    
+    local bookshelfNames = {}
+    for _, bookshelf in ipairs(State.BookshelfList) do
+        table.insert(bookshelfNames, bookshelf.name)
+    end
+    
+    if #bookshelfNames > 0 then
+        Options.BookshelfDropdown:SetValues(bookshelfNames)
+        Options.BookshelfDropdown:SetValue(bookshelfNames[1])
+        return true, "Found " .. #bookshelfNames .. " bookshelves"
+    else
+        Options.BookshelfDropdown:SetValues({"No bookshelves found"})
+        Options.BookshelfDropdown:SetValue("No bookshelves found")
+        return false, "No bookshelves found"
+    end
+end
+
+-- Added function to teleport to selected bookshelf
+local function TeleportToBookshelf(bookshelfName)
+    local character = LocalPlayer.Character
+    if not character then
+        return false, "Character not found!"
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return false, "HumanoidRootPart not found!"
+    end
+    
+    for _, bookshelf in ipairs(State.BookshelfList) do
+        if bookshelf.name == bookshelfName then
+            hrp.CFrame = bookshelf.position
+            return true, "Teleported to " .. bookshelfName
+        end
+    end
+    
+    return false, "Bookshelf not found!"
+end
+
 local function Revive()
     local character = LocalPlayer.Character
     if not character then
@@ -1169,7 +1444,6 @@ local function Revive()
     end
 end
 
--- UI Setup
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
@@ -1194,7 +1468,6 @@ local Tabs = {
     Settings = Window:AddTab("UI Settings", "settings"),
 }
 
--- Local Player Group
 local LocalPlayerGroup = Tabs.Main:AddLeftGroupbox("Local-Player", "user")
 
 LocalPlayerGroup:AddSlider("WalkSpeedSlider", {
@@ -1265,7 +1538,6 @@ LocalPlayerGroup:AddLabel("Break Velocity Keybind"):AddKeyPicker("BreakVelocityK
     end,
 })
 
--- Features Group
 local FeaturesGroup = Tabs.Main:AddLeftGroupbox("Features", "shield")
 
 FeaturesGroup:AddToggle("MultiEntityTracking", {
@@ -1290,10 +1562,8 @@ FeaturesGroup:AddLabel("Auto-Dodge Keybind"):AddKeyPicker("MultiEntityTrackingKe
     end,
 })
 
--- Utility Group
 local UtilityGroup = Tabs.Main:AddRightGroupbox("Utility", "wrench")
 
--- Added fly speed slider with increased range (1-50)
 UtilityGroup:AddSlider("FlySpeedSlider", {
     Text = "Fly Speed",
     Default = 1,
@@ -1328,7 +1598,6 @@ UtilityGroup:AddLabel("Fly Keybind"):AddKeyPicker("FlyKey", {
     end,
 })
 
--- Added warning label with rich text formatting
 UtilityGroup:AddLabel("<font color='rgb(255,0,0)'><u>WARNING!</u></font> This Fly May Be <u>Patched Or Detected</u> On The Future!", true)
 
 UtilityGroup:AddDivider()
@@ -1386,7 +1655,33 @@ UtilityGroup:AddLabel("TP BPaper Keybind"):AddKeyPicker("TeleportBPaperKey", {
     end,
 })
 
--- ESP Group
+-- Added Teleport to Bookshelf dropdown and update button
+UtilityGroup:AddDivider()
+
+UtilityGroup:AddDropdown("BookshelfDropdown", {
+    Values = {"Loading..."},
+    Default = 1,
+    Multi = false,
+    Text = "Teleport to Bookshelf",
+    Tooltip = "Select a bookshelf to teleport to",
+    Callback = function(value)
+        TeleportToBookshelf(value)
+    end,
+})
+
+UtilityGroup:AddButton({
+    Text = "Update Dropdown",
+    Tooltip = "Manually refresh the bookshelf list",
+    Func = function()
+        local success, message = UpdateBookshelfDropdown()
+        if success then
+            Library:Notify(message, 3)
+        else
+            Library:Notify(message, 3)
+        end
+    end,
+})
+
 local ESPGroup = Tabs.Visuals:AddLeftGroupbox("ESP", "eye")
 
 ESPGroup:AddLabel("Bookshelf ESP")
@@ -1474,7 +1769,15 @@ ESPGroup:AddLabel("SCP-939 ESP Color"):AddColorPicker("SCP939ESPColor", {
     end,
 })
 
--- Camera Group
+ESPGroup:AddLabel("AmongUs ESP Color"):AddColorPicker("AmongUsESPColor", {
+    Default = Color3.fromRGB(255, 0, 255),
+    Title = "AmongUs ESP Color",
+    Callback = function(value)
+        State.AmongUsESPColor = value
+        UpdateEntityESPColors()
+    end,
+})
+
 local CameraGroup = Tabs.Visuals:AddRightGroupbox("Camera", "camera")
 
 CameraGroup:AddSlider("FOVSlider", {
@@ -1490,7 +1793,7 @@ CameraGroup:AddSlider("FOVSlider", {
 })
 
 CameraGroup:AddLabel("FOV Keybind"):AddKeyPicker("FOVKey", {
-    Default = "F",
+    Default = "G",
     Text = "Toggle FOV",
     Mode = "Toggle",
     Callback = function()
@@ -1570,7 +1873,6 @@ CameraGroup:AddToggle("AntiLag", {
     end,
 })
 
--- Settings
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
@@ -1611,7 +1913,23 @@ MenuGroup:AddButton("Unload", function()
     Library:Unload()
 end)
 
-Library.ToggleKeybind = Options.MenuKeybind
+MenuGroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
+
+MenuGroup:AddToggle("OptOutLog", {
+    Text = "Opt-Out Log",
+    Default = isfile("optout.unx"),
+    Callback = function(value)
+        if value then
+            writefile("optout.unx", "")
+            Library:Notify("Opt-Out Log Enabled", 3)
+        else
+            if isfile("optout.unx") then
+                delfile("optout.unx")
+            end
+            Library:Notify("Opt-Out Log Disabled", 3)
+        end
+    end
+})
 
 Library:OnUnload(function()
     if State.BookshelfESPActive then DisableBookshelfESP() end
@@ -1623,6 +1941,8 @@ Library:OnUnload(function()
     if State.CustomWalkSpeedActive then ResetWalkSpeed() end
     if State.CustomFOVActive then ResetFOV() end
     if State.FlyActive then DisableFly() end
+    if State.AntiLagActive then DisableAntiLag() end
+    StopPeriodicRecheck()
     
     getgenv().unxshared.isloaded = false
 end)
