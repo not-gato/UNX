@@ -167,16 +167,15 @@ task.wait(0.3)
 s("Creating global variables...")
 task.wait(0.4)
 getgenv().unxshared = {
-	version = "2.1.0a",
+	version = "2.1.1 (Patch 1)",
 	gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
 	playerid = b.UserId,
 	isloaded = false,
-	devnote = "ues - luiz"
+	devnote = "pls fruit"
 }
 
--- ✅ changed from GitHub to your custom API:
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua", true))()
 
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
