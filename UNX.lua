@@ -187,9 +187,9 @@ local u = game.PlaceId
 s("Game ID: " .. tostring(u))
 task.wait(0.3)
 local v = {
-[1240123653] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua",
-[1632210982] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/ZombieAttack.lua",
-[12240122896] = "https://github.com/not-gato/UNX/raw/refs/heads/main/Games/FigureL.lua"
+[1240123653] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
+[1632210982] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
+[12240122896] = "https://apigetunx.vercel.app/Games/FigureL.lua"
 }
 local w, x
 if v[u] then
@@ -208,7 +208,7 @@ task.wait(0.4)
 s("Fetching universal script...")
 task.wait(0.3)
 w, x = pcall(function()
-loadstring(game:HttpGet("https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Universal.lua"))()
+loadstring(game:HttpGet("https://apigetunx.vercel.app/Games/Universal.lua"))()
 end)
 end
 if w then
