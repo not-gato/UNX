@@ -41,7 +41,8 @@ ac.Material = Enum.Material.ForceField
 ac.Transparency = 0.5
 ac.Position = Vector3.new(0, -50, 0)
 ac.Parent = h
-local ad = {ae = i.Brightness, af = i.Ambient, ag = i.FogEnd, ah = i.Technology, ai = {}, aj = h.Gravity, ak = j.CameraMaxZoomDistance, al = k.FieldOfView}
+local ad = {
+ae = i.Brightness, af = i.Ambient, ag = i.FogEnd, ah = i.Technology, ai = {}, aj = h.Gravity, ak = j.CameraMaxZoomDistance, al = k.FieldOfView}
 for _, am in pairs(h:GetDescendants()) do
 	if am:IsA("MeshPart") and am.TextureID ~= "" then
 		ad.ai[am] = am.TextureID
@@ -75,9 +76,12 @@ local bj = a:CreateWindow({
 	Footer = "Version: " .. hc .. ", Game: " .. bi,
 	Icon = 123333102279908,
 	NotifySide = "Right",
-	ShowCustomCursor = true
-})
-local bk = {bl = bj:AddTab("Main", 10734950309), bm = bj:AddTab("Visuals", 10723434711), bn = bj:AddTab("Attack", 10723407389), bo = bj:AddTab("UI Settings", 10734949856)}
+	ShowCustomCursor = true})
+local bk = {
+bl = bj:AddTab("Main", 10734950309), 
+bm = bj:AddTab("Visuals", 10723434711), 
+bn = bj:AddTab("Attack", 10723407389), 
+bo = bj:AddTab("UI Settings", 10734949856)}
 local bp = bk.bl:AddLeftGroupbox("Local Player")
 bp:AddSlider("bq", {Text = "Walk Speed", Default = ay, Min = 0, Max = 100, Rounding = 0, Callback = function(br)
 	local bs = j.Character
@@ -1108,6 +1112,22 @@ gv:AddLabel("Menu bind"):AddKeyPicker("hb", {Default = "RightShift", NoUI = true
 gv:AddButton("Unload", function()
 	a:Unload()
 end)
+gv:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
+gv:AddToggle("OptOutLog", {
+	Text = "Opt-Out Log",
+	Default = isfile("optout.unx"),
+	Callback = function(bz)
+		if bz then
+			writefile("optout.unx", "")
+			a:Notify("Opt-Out Log Enabled", 3)
+		else
+			if isfile("optout.unx") then
+				delfile("optout.unx")
+			end
+			a:Notify("Opt-Out Log Disabled", 3)
+		end
+	end
+})
 a.ToggleKeybind = d.hb
 b:SetLibrary(a)
 c:SetLibrary(a)
@@ -1179,6 +1199,5 @@ a:OnUnload(function()
 	if ac then
 		ac:Destroy()
 	end
-
 	getgenv().unxshared.isloaded = false
 end)
