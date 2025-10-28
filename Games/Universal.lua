@@ -1,8 +1,12 @@
+-- now 200% more reliable
+
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
+
 local Options = Library.Options
 local Toggles = Library.Toggles
+
 local Window = Library:CreateWindow({
     Title = "UNXHub",
     Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown"),
@@ -10,11 +14,13 @@ local Window = Library:CreateWindow({
     NotifySide = "Right",
     ShowCustomCursor = true,
 })
+
 Library:Notify({
 	Title = "Welcome To UNXHub " .. game.Players.LocalPlayer.Name .. "!",
 	Description = "Script loaded successfully",
 	Time = 5,
 })
+
 local Tabs = {
 	Main = Window:AddTab("Main", "user"),
 	Visuals = Window:AddTab("Visuals", "eye"),
@@ -22,7 +28,9 @@ local Tabs = {
 	["Fun"] = Window:AddTab("Fun", "music"),
 	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
+
 local debugmode = isfile("debugtrue")
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -32,6 +40,7 @@ local TeleportService = game:GetService("TeleportService")
 local Stats = game:GetService("Stats")
 local TextChatService = game:GetService("TextChatService")
 local SoundService = game:GetService("SoundService")
+
 local originalwalkspeed = 16
 local originaljumppower = 50
 local originalgravity = workspace.Gravity
@@ -39,7 +48,8 @@ local originallighting = {}
 local noclipenabled = false
 local infinitejumpenabled = false
 local antiflingenabled = false
-local antiafkenabled = false
+local xrayenabled = false
+local originaltransparencies = {}
 local antivoidenabled = false
 local antikickenabled = false
 local antillagenabled = false
@@ -51,17 +61,21 @@ local antiafkconnection = nil
 local antivoidconnection = nil
 local antikickconnections = {}
 local originaltextures = {}
+local originalmaterials = {}
 local lastposition = nil
 local originalsettings = {}
+
 originallighting.Brightness = game.Lighting.Brightness
 originallighting.Ambient = game.Lighting.Ambient
 originallighting.OutdoorAmbient = game.Lighting.OutdoorAmbient
 originallighting.FogEnd = game.Lighting.FogEnd
 originallighting.FogStart = game.Lighting.FogStart
+
 local espenabled = false
 local outlineenabled = false
 local tracersenabled = false
 local skeletonenabled = false
+
 local espconfig = {
 	showname = true,
 	showdistance = true,
@@ -81,6 +95,7 @@ local espconfig = {
 	rainbowskeleton = false,
 	rainbowspeed = 5,
 }
+
 local rainbowhue = 0
 local lastupdate = 0
 local espobjects = {}
@@ -88,22 +103,29 @@ local activehighlights = {}
 local playerconnections = {}
 local tracerlines = {}
 local skeletonlines = {}
+
 local aimlockenabled = false
 local aimlocktype = "Nearest Player"
 local fovenabled = false
 local showfov = false
-local fovsize = {X = 100, Y = 100}
+local fovsize = 100
 local fovcolor = Color3.fromRGB(255, 255, 255)
-local fovcircle = nil
+local fovgui = nil
+local fovframe = nil
+local fovstroke = nil
+local fovstrokethickness = 2
 local nearestplayerdistance = 1000
 local nearestmousedistance = 500
 local fovlockdistance = 1000
 local rainbowfov = false
 local aimlockcertainplayer = false
 local selectedplayer = nil
+local ignoredplayers = {}
+
 local animationspeed = 1
 local selectedanimation = ""
 local loopanimation = false
+
 local animationids = {
 	["Dance (R15)"] = "507766388",
 	["Zombie (R15)"] = "616158929",
@@ -113,6 +135,7 @@ local animationids = {
 	["Jerk (R6)"] = "72042024",
 	["Lay (R6)"] = "282574440"
 }
+
 local function playanimation(animid)
 	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 		local humanoid = LocalPlayer.Character.Humanoid
@@ -138,6 +161,7 @@ local function playanimation(animid)
 		end
 	end
 end
+
 local function stopanimation()
 	local character = Players.LocalPlayer.Character
 	if character then
@@ -152,6 +176,7 @@ local function stopanimation()
 		end
 	end
 end
+
 local function getrainbowcolor()
 	local currenttime = tick()
 	local speedmultiplier = 11 - espconfig.rainbowspeed
@@ -162,6 +187,7 @@ local function getrainbowcolor()
 	end
 	return Color3.fromHSV(rainbowhue, 1, 1)
 end
+
 local function getplayercolor(player)
 	if player.Team then
 		return player.TeamColor.Color
@@ -169,24 +195,29 @@ local function getplayercolor(player)
 		return Color3.new(1, 1, 1)
 	end
 end
+
 local function createesp(player)
 	if player == LocalPlayer then return end
 	if espobjects[player] then return end
+	
 	local nametext = Drawing.new("Text")
 	nametext.Size = espconfig.espsize
 	nametext.Center = true
 	nametext.Outline = true
 	nametext.Color = espconfig.espcolor
+	
 	local infotext = Drawing.new("Text")
 	infotext.Size = espconfig.espsize - 4
 	infotext.Center = true
 	infotext.Outline = true
 	infotext.Color = espconfig.espcolor
+	
 	espobjects[player] = {
 		Name = nametext,
 		Info = infotext
 	}
 end
+
 local function removeesp(player)
 	if espobjects[player] then
 		espobjects[player].Name:Remove()
@@ -194,23 +225,28 @@ local function removeesp(player)
 		espobjects[player] = nil
 	end
 end
+
 local function updateesp()
 	for player, esp in pairs(espobjects) do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local hrp = player.Character.HumanoidRootPart
 			local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
+			
 			local color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
 			esp.Name.Color = color
 			esp.Info.Color = color
 			esp.Name.Size = espconfig.espsize
 			esp.Info.Size = espconfig.espsize - 4
+			
 			if onscreen then
 				local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
 				local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 				local health = humanoid and math.floor(humanoid.Health) or 0
+				
 				esp.Name.Position = Vector2.new(pos.X, pos.Y - 20)
 				esp.Name.Text = espconfig.showname and player.Name or ""
 				esp.Name.Visible = espconfig.showname
+				
 				esp.Info.Position = Vector2.new(pos.X, pos.Y - 7)
 				esp.Info.Text = espconfig.showdistance and ("[Distance " .. math.floor(distance) .. "]") or ""
 				esp.Info.Visible = espconfig.showdistance
@@ -219,15 +255,18 @@ local function updateesp()
 				esp.Info.Visible = false
 			end
 		else
-			removeesp(player)
+			esp.Name.Visible = false
+			esp.Info.Visible = false
 		end
 	end
 end
+
 local function applyhighlighttocharacter(player, character)
 	local userid = player.UserId
 	if activehighlights[userid] then
 		activehighlights[userid]:Destroy()
 	end
+	
 	local highlighter = Instance.new("Highlight")
 	highlighter.Name = "PlayerHighlight"
 	highlighter.FillTransparency = espconfig.outlinefilltransparency
@@ -236,32 +275,41 @@ local function applyhighlighttocharacter(player, character)
 	highlighter.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
 	highlighter.Adornee = character
 	highlighter.Parent = character
+	
 	activehighlights[userid] = highlighter
 end
+
 local function setupplayerhighlight(player)
 	local userid = player.UserId
 	playerconnections[userid] = playerconnections[userid] or {}
+	
 	local function oncharacteradded(character)
 		local humanoid = character:WaitForChild("Humanoid")
+		
 		if outlineenabled then
 			applyhighlighttocharacter(player, character)
 		end
+		
 		table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
 			local highlight = activehighlights[userid]
 			if highlight then
 				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
 			end
 		end))
+		
 		table.insert(playerconnections[userid], humanoid.Died:Connect(function()
 			removehighlight(player)
 		end))
 	end
+	
 	local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
 	table.insert(playerconnections[userid], charaddedconn)
+	
 	if player.Character then
 		oncharacteradded(player.Character)
 	end
 end
+
 function removehighlight(player)
 	local userid = player.UserId
 	if activehighlights[userid] then
@@ -275,6 +323,7 @@ function removehighlight(player)
 		playerconnections[userid] = nil
 	end
 end
+
 local function toggletracers()
 	if tracersenabled then
 		RunService:BindToRenderStep("Tracers", Enum.RenderPriority.Camera.Value + 1, function()
@@ -282,10 +331,12 @@ local function toggletracers()
 				line:Destroy()
 			end
 			tracerlines = {}
+			
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 					local root = player.Character.HumanoidRootPart
 					local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
+					
 					if onscreen then
 						local line = Drawing.new("Line")
 						line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -307,6 +358,7 @@ local function toggletracers()
 		tracerlines = {}
 	end
 end
+
 local function toggleskeleton()
 	if skeletonenabled then
 		RunService:BindToRenderStep("SkeletonESP", Enum.RenderPriority.Camera.Value + 1, function()
@@ -314,6 +366,7 @@ local function toggleskeleton()
 				line:Destroy()
 			end
 			skeletonlines = {}
+			
 			for _, player in ipairs(Players:GetPlayers()) do
 				if player ~= LocalPlayer and player.Character then
 					local char = player.Character
@@ -326,7 +379,9 @@ local function toggleskeleton()
 						LeftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"),
 						RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
 					}
+					
 					local color = espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor
+					
 					local function getscreen(part)
 						if part then
 							local pos, visible = Camera:WorldToViewportPoint(part.Position)
@@ -334,6 +389,7 @@ local function toggleskeleton()
 						end
 						return nil
 					end
+					
 					local function drawline(p1, p2)
 						if p1 and p2 then
 							local line = Drawing.new("Line")
@@ -346,6 +402,7 @@ local function toggleskeleton()
 							table.insert(skeletonlines, line)
 						end
 					end
+					
 					local head = getscreen(parts.Head)
 					local torso = getscreen(parts.Torso)
 					local hip = getscreen(parts.Hip)
@@ -353,6 +410,7 @@ local function toggleskeleton()
 					local ra = getscreen(parts.RightArm)
 					local ll = getscreen(parts.LeftLeg)
 					local rl = getscreen(parts.RightLeg)
+					
 					drawline(head, torso)
 					drawline(torso, hip)
 					drawline(torso, la)
@@ -370,62 +428,82 @@ local function toggleskeleton()
 		skeletonlines = {}
 	end
 end
+
 local function getclosestplayer()
-	local closestplayer = nil
-	local shortestdistance = math.huge
+	local playerlist = {}
+	
 	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+		if player ~= LocalPlayer and not ignoredplayers[player.Name] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-			if aimlocktype == "Nearest Player" and distance < nearestplayerdistance and distance < shortestdistance then
-				closestplayer = player
-				shortestdistance = distance
+			
+			if aimlocktype == "Nearest Player" and distance < nearestplayerdistance then
+				table.insert(playerlist, {player = player, distance = distance})
 			elseif aimlocktype == "Nearest Mouse" and distance < nearestmousedistance then
 				local screenpos, onscreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
 				if onscreen then
 					local mousedistance = (Vector2.new(screenpos.X, screenpos.Y) - Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)).Magnitude
-					if mousedistance < shortestdistance then
-						closestplayer = player
-						shortestdistance = mousedistance
-					end
+					table.insert(playerlist, {player = player, distance = mousedistance})
 				end
 			end
 		end
 	end
-	if fovenabled and closestplayer then
-		local screenpos, onscreen = Camera:WorldToViewportPoint(closestplayer.Character.HumanoidRootPart.Position)
-		if onscreen then
-			local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-			local distance = (Vector2.new(screenpos.X, screenpos.Y) - center).Magnitude
-			local worlddistance = (LocalPlayer.Character.HumanoidRootPart.Position - closestplayer.Character.HumanoidRootPart.Position).Magnitude
-			if distance > math.min(fovsize.X, fovsize.Y) / 2 or worlddistance > fovlockdistance then
-				return nil
+	
+	table.sort(playerlist, function(a, b) return a.distance < b.distance end)
+	
+	for _, entry in ipairs(playerlist) do
+		local player = entry.player
+		local passedFOVCheck = true
+		
+		if fovenabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local screenpos, onscreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+			if onscreen then
+				local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+				local distance = (Vector2.new(screenpos.X, screenpos.Y) - center).Magnitude
+				local worlddistance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+				if distance > fovsize / 2 or worlddistance > fovlockdistance then
+					passedFOVCheck = false
+				end
+			else
+				passedFOVCheck = false
 			end
 		end
+		
+		if passedFOVCheck then
+			return player
+		end
 	end
-	return closestplayer
+	
+	return nil
 end
+
 local function updateaimlock()
 	if not aimlockenabled then return end
+	
 	local targetplayer = nil
 	if aimlockcertainplayer and selectedplayer then
 		targetplayer = selectedplayer
 	else
 		targetplayer = getclosestplayer()
 	end
+	
 	if targetplayer and targetplayer.Character and targetplayer.Character:FindFirstChild("Head") then
 		local targetposition = targetplayer.Character.Head.Position
 		local lookdirection = (targetposition - Camera.CFrame.Position).Unit
 		Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
 	end
 end
+
 local function updatefovcircle()
-	if showfov and fovcircle then
-		fovcircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-		fovcircle.Radius = math.min(fovsize.X, fovsize.Y) / 2
-		fovcircle.Color = rainbowfov and getrainbowcolor() or fovcolor
-		fovcircle.Visible = true
+	if fovframe and fovstroke then
+		if showfov then
+			fovstroke.Color = rainbowfov and getrainbowcolor() or fovcolor
+			fovframe.Visible = true
+		else
+			fovframe.Visible = false
+		end
 	end
 end
+
 local function setupantifling()
 	if antiflingenabled then
 		for _, player in pairs(Players:GetPlayers()) do
@@ -437,6 +515,22 @@ local function setupantifling()
 				end
 			end
 		end
+		
+		antiflingconnections.Loop = task.spawn(function()
+			while antiflingenabled do
+				task.wait(1)
+				for _, player in pairs(Players:GetPlayers()) do
+					if player ~= LocalPlayer and player.Character then
+						for _, part in pairs(player.Character:GetChildren()) do
+							if part:IsA("BasePart") then
+								part.CanCollide = false
+							end
+						end
+					end
+				end
+			end
+		end)
+		
 		antiflingconnections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
 			player.CharacterAdded:Connect(function(character)
 				if antiflingenabled then
@@ -448,6 +542,7 @@ local function setupantifling()
 				end
 			end)
 		end)
+		
 		antiflingconnections.CharacterAdded = {}
 		for _, player in pairs(Players:GetPlayers()) do
 			if player ~= LocalPlayer then
@@ -472,6 +567,7 @@ local function setupantifling()
 				end
 			end
 		end
+		
 		for _, connection in pairs(antiflingconnections) do
 			if typeof(connection) == "RBXScriptConnection" then
 				connection:Disconnect()
@@ -484,10 +580,13 @@ local function setupantifling()
 		antiflingconnections = {}
 	end
 end
+
 local playergroup = Tabs.Main:AddLeftGroupbox("Player", "user")
+
 local currentwalkspeed = 16
 local currentjumppower = 50
 local currentgravity = 196.2
+
 playergroup:AddSlider("WalkSpeed", {
 	Text = "WalkSpeed",
 	Default = 16,
@@ -498,6 +597,7 @@ playergroup:AddSlider("WalkSpeed", {
 		currentwalkspeed = Value
 	end,
 })
+
 playergroup:AddSlider("JumpPower", {
 	Text = "JumpPower",
 	Default = 50,
@@ -508,6 +608,7 @@ playergroup:AddSlider("JumpPower", {
 		currentjumppower = Value
 	end,
 })
+
 playergroup:AddSlider("Gravity", {
 	Text = "Gravity",
 	Default = 196.2,
@@ -518,6 +619,7 @@ playergroup:AddSlider("Gravity", {
 		currentgravity = Value
 	end,
 })
+
 playergroup:AddCheckbox("NoAcceleration", {
 	Text = "No Acceleration",
 	Default = false,
@@ -535,7 +637,9 @@ playergroup:AddCheckbox("NoAcceleration", {
 		end
 	end,
 })
+
 playergroup:AddDivider()
+
 playergroup:AddCheckbox("AntiFling", {
 	Text = "Anti-Fling",
 	Default = false,
@@ -544,6 +648,7 @@ playergroup:AddCheckbox("AntiFling", {
 		setupantifling()
 	end,
 })
+
 playergroup:AddCheckbox("AntiAFK", {
 	Text = "Anti-AFK",
 	Default = false,
@@ -572,6 +677,7 @@ playergroup:AddCheckbox("AntiAFK", {
 		end
 	end,
 })
+
 playergroup:AddCheckbox("AntiVoid", {
 	Text = "Anti-Void",
 	Default = false,
@@ -593,6 +699,7 @@ playergroup:AddCheckbox("AntiVoid", {
 		end
 	end,
 })
+
 playergroup:AddCheckbox("AntiKick", {
 	Text = "Anti-Kick",
 	Default = false,
@@ -613,7 +720,9 @@ playergroup:AddCheckbox("AntiKick", {
 		end
 	end,
 })
+
 playergroup:AddDivider()
+
 playergroup:AddCheckbox("Noclip", {
 	Text = "Noclip",
 	Default = false,
@@ -635,6 +744,38 @@ playergroup:AddCheckbox("Noclip", {
 		Toggles.Noclip:SetValue(not Toggles.Noclip.Value)
 	end,
 })
+
+playergroup:AddCheckbox("XRay", {
+	Text = "X-Ray",
+	Default = false,
+	Callback = function(Value)
+		xrayenabled = Value
+		if Value then
+			-- Apply X-Ray to all parts
+			for _, obj in pairs(workspace:GetDescendants()) do
+				if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
+					originaltransparencies[obj] = obj.Transparency
+					obj.Transparency = 0.6
+				end
+			end
+		else
+			-- Restore all original transparencies when disabled
+			for obj, transparency in pairs(originaltransparencies) do
+				if obj and obj.Parent then
+					obj.Transparency = transparency
+				end
+			end
+			originaltransparencies = {}
+		end
+	end,
+}):AddKeyPicker("XRayKey", {
+	Default = "X",
+	Text = "X-Ray",
+	Callback = function()
+		Toggles.XRay:SetValue(not Toggles.XRay.Value)
+	end,
+})
+
 playergroup:AddCheckbox("InfiniteJump", {
 	Text = "Infinite Jump",
 	Default = false,
@@ -648,17 +789,22 @@ playergroup:AddCheckbox("InfiniteJump", {
 		Toggles.InfiniteJump:SetValue(not Toggles.InfiniteJump.Value)
 	end,
 })
+
 local flygroup = Tabs.Main:AddRightGroupbox("Fly", "plane")
+
 local flySpeed = 1
 local nowe = false
 local tpwalking = false
 local speeds = 1
+
 local function startFlying()
 	if nowe == true then return end
 	nowe = true
+	
 	local player = Players.LocalPlayer
 	local character = player.Character
 	if not character then return end
+	
 	for i = 1, speeds do
 		spawn(function()
 			local hb = RunService.Heartbeat
@@ -672,11 +818,14 @@ local function startFlying()
 			end
 		end)
 	end
+	
 	character.Animate.Disabled = true
 	local humanoid = character:FindFirstChildOfClass("Humanoid") or character:FindFirstChildOfClass("AnimationController")
+	
 	for i,v in next, humanoid:GetPlayingAnimationTracks() do
 		v:AdjustSpeed(0)
 	end
+	
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
@@ -693,23 +842,29 @@ local function startFlying()
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
 	humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+	
 	if humanoid.RigType == Enum.HumanoidRigType.R6 then
 		local torso = character.Torso
 		local ctrl = {f = 0, b = 0, l = 0, r = 0}
 		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 		local maxspeed = 50
 		local speed = 0
+		
 		local bg = Instance.new("BodyGyro", torso)
 		bg.P = 9e4
 		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 		bg.cframe = torso.CFrame
+		
 		local bv = Instance.new("BodyVelocity", torso)
 		bv.velocity = Vector3.new(0,0.1,0)
 		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		
 		humanoid.PlatformStand = true
+		
 		spawn(function()
 			while nowe == true and humanoid.Health > 0 do
 				RunService.RenderStepped:Wait()
+				
 				local moveVector = humanoid.MoveDirection
 				if moveVector.Magnitude > 0 then
 					ctrl.f = moveVector.Z < 0 and 1 or 0
@@ -719,6 +874,7 @@ local function startFlying()
 				else
 					ctrl = {f = 0, b = 0, l = 0, r = 0}
 				end
+				
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -730,6 +886,7 @@ local function startFlying()
 						speed = 0
 					end
 				end
+				
 				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
 					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
 					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
@@ -738,8 +895,10 @@ local function startFlying()
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
+				
 				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
+			
 			bg:Destroy()
 			bv:Destroy()
 			humanoid.PlatformStand = false
@@ -752,17 +911,22 @@ local function startFlying()
 		local lastctrl = {f = 0, b = 0, l = 0, r = 0}
 		local maxspeed = 50
 		local speed = 0
+		
 		local bg = Instance.new("BodyGyro", upperTorso)
 		bg.P = 9e4
 		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 		bg.cframe = upperTorso.CFrame
+		
 		local bv = Instance.new("BodyVelocity", upperTorso)
 		bv.velocity = Vector3.new(0,0.1,0)
 		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		
 		humanoid.PlatformStand = true
+		
 		spawn(function()
 			while nowe == true and humanoid.Health > 0 do
 				wait()
+				
 				local moveVector = humanoid.MoveDirection
 				if moveVector.Magnitude > 0 then
 					ctrl.f = moveVector.Z < 0 and 1 or 0
@@ -772,6 +936,7 @@ local function startFlying()
 				else
 					ctrl = {f = 0, b = 0, l = 0, r = 0}
 				end
+				
 				if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
 					speed = speed+.5+(speed/maxspeed)
 					if speed > maxspeed then
@@ -783,6 +948,7 @@ local function startFlying()
 						speed = 0
 					end
 				end
+				
 				if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
 					bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
 					lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
@@ -791,8 +957,10 @@ local function startFlying()
 				else
 					bv.velocity = Vector3.new(0,0,0)
 				end
+				
 				bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
 			end
+			
 			bg:Destroy()
 			bv:Destroy()
 			humanoid.PlatformStand = false
@@ -801,15 +969,19 @@ local function startFlying()
 		end)
 	end
 end
+
 local function stopFlying()
 	if nowe == false then return end
 	nowe = false
 	tpwalking = false
+	
 	local player = Players.LocalPlayer
 	local character = player.Character
 	if not character then return end
+	
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not humanoid then return end
+	
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
@@ -827,6 +999,7 @@ local function stopFlying()
 	humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
 	humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
 end
+
 flygroup:AddToggle("FlyToggle", {
 	Text = "Fly",
 	Default = false,
@@ -845,6 +1018,7 @@ flygroup:AddToggle("FlyToggle", {
 	Text = "Fly Keybind",
 	SyncToggleState = true,
 })
+
 flygroup:AddSlider("FlySpeed", {
 	Text = "Fly Speed",
 	Default = 1,
@@ -875,6 +1049,7 @@ flygroup:AddSlider("FlySpeed", {
 		end
 	end,
 })
+
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	wait(0.7)
 	nowe = false
@@ -886,10 +1061,13 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
 		end
 	end
 end)
+
 local statusgroup = Tabs.Main:AddLeftGroupbox("Status", "activity")
+
 local fpslabel = statusgroup:AddLabel("FPS: 0")
 local pinglabel = statusgroup:AddLabel("PING: 0")
 local versionlabel = statusgroup:AddLabel("UNXHub Ver.: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown"))
+
 spawn(function()
 	while true do
 		local fps = math.floor(1 / RunService.Heartbeat:Wait())
@@ -897,6 +1075,7 @@ spawn(function()
 		wait(1)
 	end
 end)
+
 spawn(function()
 	while true do
 		local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
@@ -904,7 +1083,9 @@ spawn(function()
 		wait(0.001)
 	end
 end)
+
 local othergroup = Tabs.Main:AddRightGroupbox("Other", "more-horizontal")
+
 othergroup:AddButton({
 	Text = "Reset",
 	Func = function()
@@ -913,13 +1094,16 @@ othergroup:AddButton({
 		end
 	end,
 })
+
 othergroup:AddButton({
 	Text = "Rejoin",
 	Func = function()
 		TeleportService:Teleport(game.PlaceId, LocalPlayer)
 	end,
 })
+
 othergroup:AddDivider()
+
 othergroup:AddButton({
 	Text = "Reset WalkSpeed",
 	Func = function()
@@ -927,6 +1111,7 @@ othergroup:AddButton({
 		Options.WalkSpeed:SetValue(16)
 	end,
 })
+
 othergroup:AddButton({
 	Text = "Reset JumpPower",
 	Func = function()
@@ -934,6 +1119,7 @@ othergroup:AddButton({
 		Options.JumpPower:SetValue(50)
 	end,
 })
+
 othergroup:AddButton({
 	Text = "Reset Gravity",
 	Func = function()
@@ -941,9 +1127,11 @@ othergroup:AddButton({
 		Options.Gravity:SetValue(196.2)
 	end,
 })
+
 local esptabbox = Tabs.Visuals:AddLeftTabbox()
 local esptab = esptabbox:AddTab("ESP")
 local configtab = esptabbox:AddTab("Configurations")
+
 esptab:AddCheckbox("ESP", {
 	Text = "ESP",
 	Default = false,
@@ -966,6 +1154,7 @@ esptab:AddCheckbox("ESP", {
 		espconfig.espcolor = Value
 	end,
 })
+
 esptab:AddCheckbox("Outline", {
 	Text = "Outline",
 	Default = false,
@@ -995,6 +1184,7 @@ esptab:AddCheckbox("Outline", {
 		espconfig.outlinefillcolor = Value
 	end,
 })
+
 esptab:AddCheckbox("Tracers", {
 	Text = "Tracers",
 	Default = false,
@@ -1009,6 +1199,7 @@ esptab:AddCheckbox("Tracers", {
 		espconfig.tracercolor = Value
 	end,
 })
+
 esptab:AddCheckbox("SkeletonESP", {
 	Text = "Skeleton ESP",
 	Default = false,
@@ -1023,6 +1214,7 @@ esptab:AddCheckbox("SkeletonESP", {
 		espconfig.skeletoncolor = Value
 	end,
 })
+
 configtab:AddCheckbox("ShowName", {
 	Text = "Show Name",
 	Default = true,
@@ -1030,6 +1222,7 @@ configtab:AddCheckbox("ShowName", {
 		espconfig.showname = Value
 	end,
 })
+
 configtab:AddCheckbox("ShowDistance", {
 	Text = "Show Distance",
 	Default = true,
@@ -1037,6 +1230,7 @@ configtab:AddCheckbox("ShowDistance", {
 		espconfig.showdistance = Value
 	end,
 })
+
 configtab:AddCheckbox("RainbowESP", {
 	Text = "Rainbow ESP",
 	Default = false,
@@ -1044,6 +1238,7 @@ configtab:AddCheckbox("RainbowESP", {
 		espconfig.rainbowesp = Value
 	end,
 })
+
 configtab:AddCheckbox("RainbowOutline", {
 	Text = "Rainbow Outline",
 	Default = false,
@@ -1051,6 +1246,7 @@ configtab:AddCheckbox("RainbowOutline", {
 		espconfig.rainbowoutline = Value
 	end,
 })
+
 configtab:AddCheckbox("RainbowTracers", {
 	Text = "Rainbow Tracers",
 	Default = false,
@@ -1058,6 +1254,7 @@ configtab:AddCheckbox("RainbowTracers", {
 		espconfig.rainbowtracers = Value
 	end,
 })
+
 configtab:AddCheckbox("RainbowSkeleton", {
 	Text = "Rainbow Skeleton ESP",
 	Default = false,
@@ -1065,6 +1262,7 @@ configtab:AddCheckbox("RainbowSkeleton", {
 		espconfig.rainbowskeleton = Value
 	end,
 })
+
 configtab:AddSlider("ESPSize", {
 	Text = "ESP Size",
 	Default = 16,
@@ -1075,6 +1273,7 @@ configtab:AddSlider("ESPSize", {
 		espconfig.espsize = Value
 	end,
 })
+
 configtab:AddSlider("TracerSize", {
 	Text = "Tracer Size",
 	Default = 2,
@@ -1085,6 +1284,7 @@ configtab:AddSlider("TracerSize", {
 		espconfig.tracersize = Value
 	end,
 })
+
 configtab:AddSlider("OutlineTransparency", {
 	Text = "Outline Transparency",
 	Default = 0,
@@ -1095,6 +1295,7 @@ configtab:AddSlider("OutlineTransparency", {
 		espconfig.outlinetransparency = Value
 	end,
 })
+
 configtab:AddSlider("OutlineFillTransparency", {
 	Text = "Outline Fill Transparency",
 	Default = 1,
@@ -1105,6 +1306,7 @@ configtab:AddSlider("OutlineFillTransparency", {
 		espconfig.outlinefilltransparency = Value
 	end,
 })
+
 configtab:AddSlider("RainbowSpeed", {
 	Text = "Rainbow Speed",
 	Default = 5,
@@ -1115,7 +1317,9 @@ configtab:AddSlider("RainbowSpeed", {
 		espconfig.rainbowspeed = Value
 	end,
 })
+
 local gamegroup = Tabs.Visuals:AddRightGroupbox("Game", "gamepad-2")
+
 gamegroup:AddSlider("FieldOfView", {
 	Text = "Field of View",
 	Default = 70,
@@ -1126,6 +1330,7 @@ gamegroup:AddSlider("FieldOfView", {
 		workspace.CurrentCamera.FieldOfView = Value
 	end,
 })
+
 gamegroup:AddCheckbox("FullBright", {
 	Text = "Full Bright",
 	Default = false,
@@ -1142,6 +1347,7 @@ gamegroup:AddCheckbox("FullBright", {
 		end
 	end,
 })
+
 gamegroup:AddCheckbox("NoFog", {
 	Text = "No Fog",
 	Default = false,
@@ -1156,46 +1362,78 @@ gamegroup:AddCheckbox("NoFog", {
 		end
 	end,
 })
+
 gamegroup:AddCheckbox("AntiLag", {
 	Text = "Anti Lag",
 	Default = false,
 	Callback = function(Value)
 		antillagenabled = Value
 		if Value then
-			originalsettings.RenderDistance = workspace.CurrentCamera.RenderDistance
 			originalsettings.QualityLevel = settings().Rendering.QualityLevel
-			workspace.CurrentCamera.RenderDistance = 50
 			settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+			
+			setfpscap(999)
+			
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("Texture") or obj:IsA("Decal") then
 					originaltextures[obj] = obj.Texture
 					obj.Texture = ""
 				elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
 					obj.Enabled = false
+				elseif obj:IsA("BasePart") then
+					originalmaterials[obj] = obj.Material
+					obj.Material = Enum.Material.Plastic
 				end
 			end
+			
+			antiflingconnections.AntiLagDescendantAdded = workspace.DescendantAdded:Connect(function(obj)
+				if antillagenabled then
+					if obj:IsA("Texture") or obj:IsA("Decal") then
+						obj.Texture = ""
+					elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+						obj.Enabled = false
+					elseif obj:IsA("BasePart") then
+						obj.Material = Enum.Material.Plastic
+					end
+				end
+			end)
 		else
-			if originalsettings.RenderDistance then
-				workspace.CurrentCamera.RenderDistance = originalsettings.RenderDistance
-			end
 			if originalsettings.QualityLevel then
 				settings().Rendering.QualityLevel = originalsettings.QualityLevel
 			end
+			
+			setfpscap(60)
+			
 			for obj, texture in pairs(originaltextures) do
 				if obj and obj.Parent then
 					obj.Texture = texture
 				end
 			end
 			originaltextures = {}
+			
+			for obj, material in pairs(originalmaterials) do
+				if obj and obj.Parent then
+					obj.Material = material
+				end
+			end
+			originalmaterials = {}
+			
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
 					obj.Enabled = true
 				end
 			end
+			
+			if antiflingconnections.AntiLagDescendantAdded then
+				antiflingconnections.AntiLagDescendantAdded:Disconnect()
+				antiflingconnections.AntiLagDescendantAdded = nil
+			end
 		end
 	end,
 })
+
 local teleportgroup = Tabs.Features:AddLeftGroupbox("Teleport", "zap")
+
 teleportgroup:AddDropdown("TeleportPlayer", {
 	SpecialType = "Player",
 	ExcludeLocalPlayer = true,
@@ -1203,6 +1441,7 @@ teleportgroup:AddDropdown("TeleportPlayer", {
 	Callback = function(Value)
 	end,
 })
+
 teleportgroup:AddButton({
 	Text = "Teleport to Player",
 	Func = function()
@@ -1217,10 +1456,13 @@ teleportgroup:AddButton({
 		end
 	end,
 })
+
 local autochatgroup = Tabs.Features:AddLeftGroupbox("Auto Chat", "message-circle")
+
 local autochatEnabled = false
 local autochatMessage = "Hello World!"
 local autochatInterval = 1
+
 autochatgroup:AddCheckbox("AutoChat", {
 	Text = "Auto Chat",
 	Default = false,
@@ -1238,6 +1480,7 @@ autochatgroup:AddCheckbox("AutoChat", {
 		end
 	end,
 })
+
 autochatgroup:AddInput("AutoChatMessage", {
 	Default = "Hello World!",
 	Text = "Chat Message",
@@ -1245,6 +1488,7 @@ autochatgroup:AddInput("AutoChatMessage", {
 		autochatMessage = Value
 	end,
 })
+
 autochatgroup:AddSlider("AutoChatInterval", {
 	Text = "Chat Interval (seconds)",
 	Default = 1,
@@ -1255,7 +1499,9 @@ autochatgroup:AddSlider("AutoChatInterval", {
 		autochatInterval = Value
 	end,
 })
+
 local servergroup = Tabs.Features:AddRightGroupbox("Server Options", "server")
+
 servergroup:AddButton({
 	Text = "Copy Server JobID",
 	Func = function()
@@ -1263,12 +1509,14 @@ servergroup:AddButton({
 		Library:Notify("Server JobID copied to clipboard!", 3)
 	end,
 })
+
 servergroup:AddInput("ServerJobID", {
 	Default = "",
 	Text = "Server JobID",
 	Callback = function(Value)
 	end,
 })
+
 servergroup:AddButton({
 	Text = "Join Server",
 	Func = function()
@@ -1278,7 +1526,9 @@ servergroup:AddButton({
 		end
 	end,
 })
+
 local fpsgroup = Tabs.Features:AddRightGroupbox("FPS Control", "gauge")
+
 fpsgroup:AddSlider("FPSCap", {
 	Text = "FPS Cap",
 	Default = 60,
@@ -1289,6 +1539,7 @@ fpsgroup:AddSlider("FPSCap", {
 		setfpscap(Value)
 	end,
 })
+
 fpsgroup:AddDropdown("FPSPresets", {
 	Values = {"24", "30", "60", "120", "240", "460", "520"},
 	Default = 1,
@@ -1301,6 +1552,7 @@ fpsgroup:AddDropdown("FPSPresets", {
 		end
 	end,
 })
+
 fpsgroup:AddButton({
 	Text = "Unlimited FPS",
 	Func = function()
@@ -1308,9 +1560,11 @@ fpsgroup:AddButton({
 		Options.FPSCap:SetValue(520)
 	end,
 })
+
 local aimlocktabbox = Tabs.Features:AddLeftTabbox()
 local aimlocktab = aimlocktabbox:AddTab("AimLock")
 local aimlockconfigtab = aimlocktabbox:AddTab("Configurations")
+
 aimlocktab:AddCheckbox("AimLock", {
 	Text = "Activate Aimlock",
 	Default = false,
@@ -1318,6 +1572,7 @@ aimlocktab:AddCheckbox("AimLock", {
 		aimlockenabled = Value
 	end,
 })
+
 aimlocktab:AddDropdown("AimLockType", {
 	Values = {"Nearest Player", "Nearest Mouse"},
 	Default = 1,
@@ -1326,6 +1581,7 @@ aimlocktab:AddDropdown("AimLockType", {
 		aimlocktype = Value
 	end,
 })
+
 aimlocktab:AddCheckbox("AimLockCertainPlayer", {
 	Text = "Aimlock Certain Player",
 	Default = false,
@@ -1333,6 +1589,7 @@ aimlocktab:AddCheckbox("AimLockCertainPlayer", {
 		aimlockcertainplayer = Value
 	end,
 })
+
 aimlocktab:AddDropdown("AimLockPlayerSelect", {
 	SpecialType = "Player",
 	ExcludeLocalPlayer = true,
@@ -1341,6 +1598,7 @@ aimlocktab:AddDropdown("AimLockPlayerSelect", {
 		selectedplayer = Value
 	end,
 })
+
 aimlocktab:AddCheckbox("EnableFOV", {
 	Text = "Enable FOV",
 	Default = false,
@@ -1352,14 +1610,6 @@ aimlocktab:AddCheckbox("EnableFOV", {
 			Options.AimLockType.Disabled = false
 		end
 	end,
-})
-aimlocktab:AddCheckbox("ShowFOV", {
-	Text = "Show FOV (Feature Is Broken)",
-	Default = false,
-	Tooltip = "Feature Is Broken",
-	Callback = function(Value)
-		showfov = false
-	end,
 }):AddColorPicker("FOVColor", {
 	Default = Color3.fromRGB(255, 255, 255),
 	Title = "FOV Color",
@@ -1367,9 +1617,48 @@ aimlocktab:AddCheckbox("ShowFOV", {
 		fovcolor = Value
 	end,
 })
-if Options.ShowFOV then
-	Options.ShowFOV.Disabled = true
-end
+
+aimlocktab:AddCheckbox("ShowFOV", {
+	Text = "Show FOV",
+	Default = false,
+	Callback = function(Value)
+		showfov = Value
+		if Value then
+			if not fovgui then
+				fovgui = Instance.new("ScreenGui")
+				fovgui.Name = "FOVCircle"
+				fovgui.IgnoreGuiInset = true
+				fovgui.Parent = game:GetService("CoreGui")
+				
+				fovframe = Instance.new("Frame")
+				fovframe.Name = "Circle"
+				fovframe.AnchorPoint = Vector2.new(0.5, 0.5)
+				fovframe.Position = UDim2.new(0.5, 0, 0.5, 0)
+				fovframe.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				fovframe.BackgroundTransparency = 1
+				fovframe.BorderSizePixel = 0
+				fovframe.Parent = fovgui
+				
+				local corner = Instance.new("UICorner")
+				corner.CornerRadius = UDim.new(1, 0)
+				corner.Parent = fovframe
+				
+				fovstroke = Instance.new("UIStroke")
+				fovstroke.Color = Color3.fromRGB(255, 255, 255)
+				fovstroke.Thickness = fovstrokethickness
+				fovstroke.Parent = fovframe
+				
+				fovframe.Size = UDim2.new(0, fovsize, 0, fovsize)
+			end
+			fovframe.Visible = true
+		else
+			if fovframe then
+				fovframe.Visible = false
+			end
+		end
+	end,
+})
+
 aimlockconfigtab:AddSlider("NearestPlayerDistance", {
 	Text = "Nearest Player Lock Distance (Studs)",
 	Default = 1000,
@@ -1380,6 +1669,7 @@ aimlockconfigtab:AddSlider("NearestPlayerDistance", {
 		nearestplayerdistance = Value
 	end,
 })
+
 aimlockconfigtab:AddSlider("NearestMouseDistance", {
 	Text = "Nearest Mouse Lock Distance (Studs)",
 	Default = 500,
@@ -1390,6 +1680,7 @@ aimlockconfigtab:AddSlider("NearestMouseDistance", {
 		nearestmousedistance = Value
 	end,
 })
+
 aimlockconfigtab:AddSlider("FOVLockDistance", {
 	Text = "FOV Lock Distance (Studs)",
 	Default = 1000,
@@ -1400,6 +1691,7 @@ aimlockconfigtab:AddSlider("FOVLockDistance", {
 		fovlockdistance = Value
 	end,
 })
+
 aimlockconfigtab:AddCheckbox("RainbowFOV", {
 	Text = "Rainbow FOV",
 	Default = false,
@@ -1407,33 +1699,58 @@ aimlockconfigtab:AddCheckbox("RainbowFOV", {
 		rainbowfov = Value
 	end,
 })
-aimlockconfigtab:AddSlider("FOVSizeX", {
-	Text = "FOV Size (X)",
+
+aimlockconfigtab:AddSlider("FOVSize", {
+	Text = "FOV Size",
 	Default = 100,
-	Min = 50,
-	Max = 500,
+	Min = 1,
+	Max = 750,
 	Rounding = 1,
 	Callback = function(Value)
-		fovsize.X = Value
-		if fovcircle then
-			fovcircle.Radius = math.min(fovsize.X, fovsize.Y) / 2
+		fovsize = Value
+		if fovframe then
+			fovframe.Size = UDim2.new(0, fovsize, 0, fovsize)
 		end
 	end,
 })
-aimlockconfigtab:AddSlider("FOVSizeY", {
-	Text = "FOV Size (Y)",
-	Default = 100,
-	Min = 50,
-	Max = 500,
+
+aimlockconfigtab:AddSlider("FOVStrokeThickness", {
+	Text = "FOV Stroke Thickness",
+	Default = 2,
+	Min = 1,
+	Max = 10,
 	Rounding = 1,
 	Callback = function(Value)
-		fovsize.Y = Value
-		if fovcircle then
-			fovcircle.Radius = math.min(fovsize.X, fovsize.Y) / 2
+		fovstrokethickness = Value
+		if fovstroke then
+			fovstroke.Thickness = Value
 		end
 	end,
 })
+
+aimlockconfigtab:AddDivider()
+
+aimlockconfigtab:AddDropdown("IgnorePlayers", {
+	SpecialType = "Player",
+	ExcludeLocalPlayer = true,
+	Multi = true,
+	Text = "Ignore Players",
+	Tooltip = "Selected players will be ignored by aimlock",
+	Callback = function(Value)
+		ignoredplayers = {}
+		for player, isSelected in pairs(Value) do
+			if isSelected then
+				ignoredplayers[player.Name] = true
+				if debugmode then
+					print("[DEBUG]: Added " .. player.Name .. " to aimlock ignore list")
+				end
+			end
+		end
+	end,
+})
+
 local menugroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "settings")
+
 menugroup:AddInput("DPIScale", {
 	Default = "100",
 	Text = "DPI Scale",
@@ -1444,6 +1761,7 @@ menugroup:AddInput("DPIScale", {
 		end
 	end,
 })
+
 menugroup:AddCheckbox("KeybindMenuOpen", {
 	Default = Library.KeybindFrame.Visible,
 	Text = "Open Keybind Menu",
@@ -1451,6 +1769,7 @@ menugroup:AddCheckbox("KeybindMenuOpen", {
 		Library.KeybindFrame.Visible = value
 	end,
 })
+
 menugroup:AddCheckbox("ShowCustomCursor", {
 	Text = "Custom Cursor",
 	Default = true,
@@ -1458,6 +1777,7 @@ menugroup:AddCheckbox("ShowCustomCursor", {
 		Library.ShowCustomCursor = Value
 	end,
 })
+
 menugroup:AddDropdown("NotificationSide", {
 	Values = { "Left", "Right" },
 	Default = "Right",
@@ -1466,6 +1786,7 @@ menugroup:AddDropdown("NotificationSide", {
 		Library:SetNotifySide(Value)
 	end,
 })
+
 menugroup:AddDropdown("DPIDropdown", {
 	Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
 	Default = "100%",
@@ -1476,12 +1797,17 @@ menugroup:AddDropdown("DPIDropdown", {
 		Library:SetDPIScale(dpi)
 	end,
 })
+
 menugroup:AddDivider()
-menugroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+
+menugroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { NoUI = true, Text = "Menu keybind" })
+
 menugroup:AddButton("Unload", function()
 	Library:Unload()
 end)
+
 menugroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
+
 menugroup:AddCheckbox("OptOutLog", {
 	Text = "Opt-Out Log",
 	Default = isfile("optout.unx"),
@@ -1497,41 +1823,33 @@ menugroup:AddCheckbox("OptOutLog", {
 		end
 	end,
 })
-menugroup:AddToggle("DebugMode", {
-	Text = "Debug Mode (Restart Required)",
-	Default = debugmode,
-	Callback = function(Value)
-		if Value then
-			writefile("debugtrue", "debug enabled")
-			if debugmode then
-				print("[DEBUG]: Debug mode file created - restart script to enable")
-			end
-		else
-			if isfile("debugtrue") then
-				delfile("debugtrue")
-				if debugmode then
-					print("[DEBUG]: Debug mode file deleted - restart script to disable")
-				end
-			end
-		end
-	end,
-})
+
+
+-- Adding ThemeManager and SaveManager configuration
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
+
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+
 ThemeManager:SetFolder("MyScriptHub")
 SaveManager:SetFolder("MyScriptHub/specific-game")
+
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
+
 SaveManager:LoadAutoloadConfig()
+
+-- Adding Fun tab with animations and music player
 local animationstabbox = Tabs["Fun"]:AddLeftTabbox()
 local animtab = animationstabbox:AddTab("Anim")
 local animconfigtab = animationstabbox:AddTab("Config")
+
 local animationnames = {}
 for name, _ in pairs(animationids) do
 	table.insert(animationnames, name)
 end
+
 animtab:AddDropdown("AnimationSelect", {
 	Values = animationnames,
 	Default = 1,
@@ -1543,6 +1861,7 @@ animtab:AddDropdown("AnimationSelect", {
 		end
 	end,
 })
+
 animtab:AddCheckbox("PlayAnimation", {
 	Text = "Play Animation",
 	Default = false,
@@ -1562,6 +1881,7 @@ animtab:AddCheckbox("PlayAnimation", {
 		end
 	end,
 })
+
 animtab:AddInput("CustomAnimID", {
 	Default = "",
 	Numeric = true,
@@ -1573,6 +1893,7 @@ animtab:AddInput("CustomAnimID", {
 		end
 	end,
 })
+
 animtab:AddCheckbox("PlayCustomAnimation", {
 	Text = "Play Custom Animation ID",
 	Default = false,
@@ -1598,6 +1919,7 @@ animtab:AddCheckbox("PlayCustomAnimation", {
 		end
 	end,
 })
+
 animconfigtab:AddCheckbox("LoopAnimation", {
 	Text = "Loop Animation",
 	Default = false,
@@ -1608,15 +1930,20 @@ animconfigtab:AddCheckbox("LoopAnimation", {
 		end
 	end,
 })
+
 local musicplayergroup = Tabs["Fun"]:AddRightGroupbox("Music Player", "music")
+
 local CurrentSound
 local musicFolder = "unxhub/musics"
+
 if not isfolder("unxhub") then
 	makefolder("unxhub")
 end
+
 if not isfolder(musicFolder) then
 	makefolder(musicFolder)
 end
+
 local function LoadSongs(folder)
 	local files = listfiles(folder)
 	local songs = {}
@@ -1631,6 +1958,7 @@ local function LoadSongs(folder)
 	end
 	return songs
 end
+
 local function PlaySound(id, label, loop)
 	if CurrentSound then CurrentSound:Destroy() end
 	local sound = Instance.new("Sound")
@@ -1644,6 +1972,7 @@ local function PlaySound(id, label, loop)
 	CurrentSound = sound
 	Library:Notify("Playing: " .. label, 3)
 end
+
 musicplayergroup:AddDropdown("MusicList", {
 	Values = LoadSongs(musicFolder),
 	Default = 1,
@@ -1651,6 +1980,7 @@ musicplayergroup:AddDropdown("MusicList", {
 	Text = "Music List",
 	Searchable = true,
 })
+
 task.spawn(function()
 	while true do
 		task.wait(0.5)
@@ -1662,6 +1992,7 @@ task.spawn(function()
 		end
 	end
 end)
+
 musicplayergroup:AddButton({
 	Text = "Play Music (Order)",
 	Func = function()
@@ -1671,6 +2002,7 @@ musicplayergroup:AddButton({
 		if id then PlaySound(id, val) end
 	end,
 })
+
 musicplayergroup:AddButton({
 	Text = "Play Music (Shuffled)",
 	Func = function()
@@ -1681,6 +2013,7 @@ musicplayergroup:AddButton({
 		if id then PlaySound(id, pick) end
 	end,
 })
+
 musicplayergroup:AddButton({
 	Text = "Stop Music",
 	Func = function()
@@ -1693,9 +2026,12 @@ musicplayergroup:AddButton({
 		end
 	end,
 })
+
 musicplayergroup:AddDivider()
+
 musicplayergroup:AddInput("MusicID", {Text="Music ID", Default="", Numeric=true, ClearTextOnFocus=true, Placeholder="Enter ID"})
 musicplayergroup:AddInput("MusicName", {Text="Music Name", Default="", Numeric=false, ClearTextOnFocus=true, Placeholder="Enter Name"})
+
 musicplayergroup:AddButton({
 	Text = "Add Music To Music List",
 	Func = function()
@@ -1705,12 +2041,14 @@ musicplayergroup:AddButton({
 		Library:Notify("Added: "..name,3)
 	end,
 })
+
 musicplayergroup:AddDropdown("RemoveSound", {
 	Values = LoadSongs(musicFolder),
 	Multi = true,
 	Text = "Remove Sound",
 	Searchable = true,
 })
+
 musicplayergroup:AddButton({
 	Text = "Remove Selected Sound(s)",
 	Func = function()
@@ -1727,11 +2065,14 @@ musicplayergroup:AddButton({
 		Options.RemoveSound.Values = LoadSongs(musicFolder)
 	end,
 })
+
 local musicconfigtabbox = Tabs["Fun"]:AddRightTabbox()
 local musicconfigtab = musicconfigtabbox:AddTab("Music Config")
-musicconfigtab:AddSlider("MusicSpeed", {Text="Playback Speed", Default=1, Min=0.5, Max=10, Rounding=1, Callback=function(val) if CurrentSound then CurrentSound.PlaybackSpeed=val end end})
+
+musicconfigtab:AddSlider("MusicSpeed", {Text="Playback Speed", Default=1, Min=0.5, Max=10, Rounding=1,Callback=function(val) if CurrentSound then CurrentSound.PlaybackSpeed=val end end})
 musicconfigtab:AddSlider("MusicVolume",{Text="Volume",Default=1,Min=0.1,Max=10,Rounding=1,Callback=function(val) if CurrentSound then CurrentSound.Volume=val end end})
 musicconfigtab:AddSlider("MusicPitch",{Text="Pitch",Default=1,Min=0.1,Max=10,Rounding=1,Callback=function(val) if CurrentSound then CurrentSound.Pitch=val end end})
+
 musicconfigtab:AddCheckbox("LoopPlay", {
 	Text = "Music Looped",
 	Default = false,
@@ -1740,11 +2081,18 @@ musicconfigtab:AddCheckbox("LoopPlay", {
 		Library:Notify("Looping is now " .. (val and "Enabled" or "Disabled"), 3)
 	end,
 })
+
 local ExampleGroup = Tabs["Fun"]:AddLeftGroupbox("Example Songs","example-box")
 local ExampleFolder = "unxhub/examples"
+
+if not isfolder("unxhub") then
+	makefolder("unxhub")
+end
+
 if not isfolder(ExampleFolder) then
 	makefolder(ExampleFolder)
 end
+
 local ExampleSongs = {
 	["Life Goes On!"]=7608899217,["Feels"]=8879155640,["Gangster Paradise"]=6070263388,
 	["Faceoff – The Rock"]=7795812961,["Stay – Kid Laroi ft. Justin Bieber"]=9062549544,
@@ -1760,12 +2108,14 @@ local ExampleSongs = {
 	["Pushing Forward"]=1843528841,["Higher & Higher"]=1837256919,["Squid Game RLGL"]=7535587224,
 	["Busybody"]=1839986001,["Danyka"]=7024233823,["I See Colors"]=7023720291,["Lil Mosey"]=10460286916
 }
+
 for name,id in pairs(ExampleSongs) do
 	local path = ExampleFolder.."/"..name..".txt"
 	if not isfile(path) then
 		writefile(path,"ID:"..id.."\nName:"..name)
 	end
 end
+
 ExampleGroup:AddDropdown("ExampleList",{
 	Values=LoadSongs(ExampleFolder),
 	Default=1,
@@ -1773,40 +2123,90 @@ ExampleGroup:AddDropdown("ExampleList",{
 	Text="Example Songs",
 	Searchable=true
 })
+
 ExampleGroup:AddButton({Text="Play Example",Func=function()
 	local val=Options.ExampleList.Value
 	if not val then Library:Notify("Select a song",3) return end
 	local id=val:match("%((%d+)%)")
 	if id then PlaySound(id,val) end
 end})
+
 ExampleGroup:AddButton({Text="Stop Example",Func=function()
 	if CurrentSound then CurrentSound:Destroy() CurrentSound=nil Library:Notify("Stopped music",3)
 	else Library:Notify("No music is playing",3) end
 end})
+
 ExampleGroup:AddCheckbox("LoopExample",{Text="Loop Example",Default=false,Callback=function(val)
 	if CurrentSound then CurrentSound.Looped=val end
 	Library:Notify("Example Loop "..(val and "Enabled" or "Disabled"),3)
 end})
+
+
+-- Adding player event connections for ESP and highlights
+Players.PlayerAdded:Connect(function(player)
+	if espenabled then
+		createesp(player)
+	end
+	if outlineenabled then
+		playerconnections[player.UserId] = {}
+		setupplayerhighlight(player)
+	end
+	
+	player.CharacterAdded:Connect(function(character)
+		if espenabled then
+			createesp(player)
+		end
+		if outlineenabled then
+			task.wait(0.1)
+			applyhighlighttocharacter(player, character)
+		end
+	end)
+end)
+
+for _, player in pairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer then
+		player.CharacterAdded:Connect(function(character)
+			if espenabled then
+				task.wait(0.1)
+				if not espobjects[player] then
+					createesp(player)
+				end
+			end
+			if outlineenabled then
+				task.wait(0.1)
+				applyhighlighttocharacter(player, character)
+			end
+		end)
+	end
+end
+
 Library:OnUnload(function()
 	for player, _ in pairs(espobjects) do
 		removeesp(player)
 	end
+	
 	for _, player in pairs(Players:GetPlayers()) do
 		removehighlight(player)
 	end
+	
 	RunService:UnbindFromRenderStep("Tracers")
 	RunService:UnbindFromRenderStep("SkeletonESP")
-	if fovcircle then
-		fovcircle:Remove()
+	
+	if fovgui then
+		fovgui:Destroy()
 	end
+	
 	for _, line in ipairs(tracerlines) do
 		line:Destroy()
 	end
+	
 	for _, line in ipairs(skeletonlines) do
 		line:Destroy()
 	end
+	
 	getgenv().unxshared.isloaded = false
 end)
+
 task.spawn(function()
 	while true do
 		task.wait()
@@ -1818,10 +2218,12 @@ task.spawn(function()
 		workspace.Gravity = currentgravity
 	end
 end)
+
 RunService.RenderStepped:Connect(function()
 	if espenabled then
 		updateesp()
 	end
+	
 	if outlineenabled then
 		for userid, highlight in pairs(activehighlights) do
 			if highlight then
@@ -1830,28 +2232,52 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
+	
 	updateaimlock()
 	updatefovcircle()
 end)
+
 UserInputService.JumpRequest:Connect(function()
 	if infinitejumpenabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 		LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 	end
 end)
+
 RunService.Heartbeat:Connect(function()
-	if noclipenabled and LocalPlayer.Character then
-		for _, part in pairs(LocalPlayer.Character:GetChildren()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
+	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+		LocalPlayer.Character.Humanoid.WalkSpeed = currentwalkspeed
+		LocalPlayer.Character.Humanoid.JumpPower = currentjumppower
+		workspace.Gravity = currentgravity
+		
+		if noclipenabled then
+			for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
+		end
+	end
+	
+	if xrayenabled then
+		for _, obj in pairs(workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
+				if not originaltransparencies[obj] then
+					originaltransparencies[obj] = obj.Transparency
+				end
+				obj.Transparency = 0.6
 			end
 		end
 	end
 end)
+
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Invite.lua",true))()
 loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
+
 Library.ToggleKeybind = Options.MenuKeybind
+
 local player = Players.LocalPlayer
 local exec = (type(identifyexecutor) == "function" and identifyexecutor()) or "Not Possible To Fetch Executor Name, Your Executor Probably Doesn't Support identifyexecutor()"
+
 if not player then
 	player = Players.PlayerAdded:Wait()
 end
