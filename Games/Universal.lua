@@ -1,5 +1,3 @@
--- now 200% more reliable
-
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
@@ -121,6 +119,7 @@ local rainbowfov = false
 local aimlockcertainplayer = false
 local selectedplayer = nil
 local ignoredplayers = {}
+local wallcheckenabled = false
 
 local animationspeed = 1
 local selectedanimation = ""
@@ -453,6 +452,7 @@ local function getclosestplayer()
 	for _, entry in ipairs(playerlist) do
 		local player = entry.player
 		local passedFOVCheck = true
+		local passedWallCheck = true
 		
 		if fovenabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local screenpos, onscreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
@@ -468,7 +468,23 @@ local function getclosestplayer()
 			end
 		end
 		
-		if passedFOVCheck then
+		if wallcheckenabled and player.Character and player.Character:FindFirstChild("Head") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+			local origin = LocalPlayer.Character.Head.Position
+			local direction = (player.Character.Head.Position - origin).Unit * (player.Character.Head.Position - origin).Magnitude
+			
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+			raycastParams.IgnoreWater = true
+			
+			local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+			
+			if raycastResult then
+				passedWallCheck = false
+			end
+		end
+		
+		if passedFOVCheck and passedWallCheck then
 			return player
 		end
 	end
@@ -1582,6 +1598,14 @@ aimlocktab:AddDropdown("AimLockType", {
 	end,
 })
 
+aimlocktab:AddCheckbox("WallCheck", {
+	Text = "Wall Check",
+	Default = false,
+	Callback = function(Value)
+		wallcheckenabled = Value
+	end,
+})
+
 aimlocktab:AddCheckbox("AimLockCertainPlayer", {
 	Text = "Aimlock Certain Player",
 	Default = false,
@@ -1716,10 +1740,7 @@ aimlockconfigtab:AddSlider("FOVSize", {
 
 aimlockconfigtab:AddSlider("FOVStrokeThickness", {
 	Text = "FOV Stroke Thickness",
-	Default = 2,
-	Min = 1,
-	Max = 10,
-	Rounding = 1,
+	Default = 0.1,
 	Callback = function(Value)
 		fovstrokethickness = Value
 		if fovstroke then
@@ -1824,7 +1845,6 @@ menugroup:AddCheckbox("OptOutLog", {
 	end,
 })
 
-
 -- Adding ThemeManager and SaveManager configuration
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
@@ -1837,8 +1857,6 @@ SaveManager:SetFolder("MyScriptHub/specific-game")
 
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
-
-SaveManager:LoadAutoloadConfig()
 
 -- Adding Fun tab with animations and music player
 local animationstabbox = Tabs["Fun"]:AddLeftTabbox()
@@ -2140,7 +2158,6 @@ ExampleGroup:AddCheckbox("LoopExample",{Text="Loop Example",Default=false,Callba
 	if CurrentSound then CurrentSound.Looped=val end
 	Library:Notify("Example Loop "..(val and "Enabled" or "Disabled"),3)
 end})
-
 
 -- Adding player event connections for ESP and highlights
 Players.PlayerAdded:Connect(function(player)
