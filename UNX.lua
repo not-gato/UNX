@@ -167,7 +167,7 @@ task.wait(0.3)
 s("Creating global variables...")
 task.wait(0.4)
 getgenv().unxshared = {
-	version = "2.1.1 (Patch 1)",
+	version = "2.1.1 (Patch 2)",
 	gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
