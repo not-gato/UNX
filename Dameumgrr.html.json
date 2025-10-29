@@ -1,6 +1,0 @@
--- Hi Skid :)
-print("heyuyy")
-<script>
-document.documentElement.innerHTML =
-  '<pre>{"status":401,"message":"Unauthorized!"}</pre>';
-</script>
