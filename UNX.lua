@@ -163,6 +163,8 @@ local function s(t)
 	addConsoleMessage(t)
 end
 s("UNXHub Loader v2.1.0 initialized")
+s("[WARNING]: By executing UNXHub you accept our Terms Of Service")
+s("[WARNING]: Learn more on http://getunx.vercel.app/")
 task.wait(0.3)
 s("Creating global variables...")
 task.wait(0.4)
