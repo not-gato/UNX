@@ -164,7 +164,7 @@ local function s(t)
 end
 s("UNXHub Loader v2.1.0 initialized")
 s("[WARNING]: By executing UNXHub you accept our Terms Of Service")
-s("[WARNING]: Learn more on http://getunx.vercel.app/")
+s("[WARNING]: Learn more on http://getunx.vercel.app/tos")
 task.wait(0.3)
 s("Creating global variables...")
 task.wait(0.4)
@@ -179,7 +179,6 @@ getgenv().unxshared = {
 }
 
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua", true))()
-
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
 task.wait(0.3)
 s("Game: " .. getgenv().unxshared.gamename)
