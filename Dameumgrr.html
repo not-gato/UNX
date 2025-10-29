@@ -1,42 +1,6 @@
-// server.js
-const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
-
-// The Lua payload returned to curl / loader clients (exact plain-text)
-const luaPayload = `-- Hi Skid :)
+-- Hi Skid :)
 print("heyuyy")
-`;
-
-// The JSON body returned to normal browsers
-const jsonPayload = { status: 401, message: "Unauthorized!" };
-
-app.get('/payload.json', (req, res) => {
-  const ua = (req.get('User-Agent') || '').toLowerCase();
-  const auth = (req.get('Authorization') || req.get('authorization') || '').trim();
-
-  // Heuristics to decide who gets the Lua:
-  // - explicit Authorization header (loaders can send token)
-  // - curl/wget/httpie user-agents
-  // - Accept header explicitly prefers plain text
-  const accept = (req.get('Accept') || '').toLowerCase();
-  const isCurlLike = ua.includes('curl') || ua.includes('wget') || ua.includes('httpie');
-  const wantsPlain = accept.includes('text/plain') || accept.includes('*/*') && !accept.includes('application/json');
-
-  if (auth || isCurlLike || wantsPlain) {
-    // Return only the raw Lua payload as plain text (no HTML, no JSON wrapper)
-    res.type('text/plain; charset=utf-8');
-    // Do NOT send any extra content
-    res.send(luaPayload);
-    return;
-  }
-
-  // Default: respond as a browser with JSON 401
-  res.type('application/json; charset=utf-8');
-  res.status(401).json(jsonPayload);
-});
-
-app.listen(port, () => {
-  console.log(`Listening on http://localhost:${port}`);
-  console.log('GET /payload.json -> lua for curl-like clients, JSON 401 for browsers');
-});
+<script>
+document.documentElement.innerHTML =
+  '<pre>{"status":401,"message":"Unauthorized!"}</pre>';
+</script>
