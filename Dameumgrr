@@ -1,0 +1,24 @@
+-- Hi Skid :)
+print("heyuyy")
+<!--
+Note:
+The content above (first two lines) is the Lua payload. Below is HTML/JS that will run
+only when the file is rendered by a browser as HTML (i.e., served with text/html or opened locally).
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>401</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>body{background:#111;color:#ddd;font-family:monospace;padding:1rem}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<script>
+/* Replace the DOM with a JSON 401 message so the browser shows that instead of the Lua. */
+document.documentElement.innerHTML =
+  '<head><meta charset="utf-8"><title>401</title></head>' +
+  '<body><pre>{"status":401,"message":"Unauthorized!"}</pre></body>';
+</script>
+</body>
+</html>
