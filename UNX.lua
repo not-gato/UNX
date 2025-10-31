@@ -1,5 +1,5 @@
 --[[IF UR HERE FOR THE SOURCE CODE; CHECK GAMES FOLDER!UNX LOADER]]
-setclipboard("this will be something cool soon not now please wait :0")
+setclipboard("Join https://discord.gg/zpaMS8qUfB plz!")
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
 return
