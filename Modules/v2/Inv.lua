@@ -5,7 +5,7 @@ local b=game:GetService("UserInputService")
 local c=game:GetService("Players")
 local d=c.LocalPlayer
 local e=d:GetMouse()
-local f=gethui and gethui()or game:GetService("CoreGui")
+local f=gethui and gethui()
 if isfile and isfile("dontshowagain.unx")then return end
 local g=Instance.new("ScreenGui")
 g.Name="UNXInvite"
