@@ -1,5 +1,5 @@
 --[[IF UR HERE FOR THE SOURCE CODE; CHECK GAMES FOLDER!UNX LOADER]]
-
+setclipboard("this will be something cool soon not now please wait :0")
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
 return
@@ -170,15 +170,14 @@ task.wait(0.3)
 s("Creating global variables...")
 task.wait(0.4)
 getgenv().unxshared = {
-	version = "2.1.1 (Patch 2)",
+	version = "2.2.0",
 	gamename = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
 	playerid = b.UserId,
 	isloaded = false,
-	devnote = "pls fruit"
+	devnote = "ok gogl big booty latina"
 }
-
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua", true))()
 s("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
 task.wait(0.3)
@@ -192,7 +191,8 @@ task.wait(0.3)
 local v = {
 	[1240123653] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
 	[1632210982] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
-	[12240122896] = "https://apigetunx.vercel.app/Games/FigureL.lua"
+	[12240122896] = "https://apigetunx.vercel.app/Games/FigureL.lua",
+	[136801880565837] = "https://apigetunx.vercel.app/Games/Flick.lua"
 }
 local w, x
 if v[u] then
@@ -214,7 +214,6 @@ else
 		loadstring(game:HttpGet("https://apigetunx.vercel.app/Games/Universal.lua"))()
 	end)
 end
-
 if w then
 	getgenv().unxshared.isloaded = true
 	s("Script loaded successfully")
