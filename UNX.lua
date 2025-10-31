@@ -1,5 +1,5 @@
 --[[IF UR HERE FOR THE SOURCE CODE; CHECK GAMES FOLDER!UNX LOADER]]
-setclipboard("Join https://discord.gg/zpaMS8qUfB plz!")
+loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
 return
