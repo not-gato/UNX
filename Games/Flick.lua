@@ -1,4 +1,4 @@
--- yep, another game!
+-- dveeloper why script no work
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -17,8 +17,6 @@ local Window = Library:CreateWindow({
     NotifySide = "Right",
     ShowCustomCursor = true,
 })
-
-Library:Notify({ Title = "Welcome To UNXHub!", Description = "Script loaded successfully", Time = 5 })
 
 local Tabs = {
 	Main = Window:AddTab("Main", "user"),
@@ -41,13 +39,6 @@ local xraytransparency = 0.6
 local originaltransparencies = {}
 local noVelocityEnabled = false
 local noVelocityConnection = nil
-
-local fullbrightenabled = false
-local nofogenabled = false
-local antillagenabled = false
-local originalsettings = {}
-local originaltextures = {}
-local originalmaterials = {}
 
 local originallighting = {
 	Brightness = game.Lighting.Brightness,
@@ -90,6 +81,7 @@ local skeletonlines = {}
 local aimlockenabled = false
 local smoothaimlock = false
 local aimlocktype = "Nearest Player"
+local aimpart = "Head"
 local fovenabled = false
 local showfov = false
 local fovsize = 100
@@ -106,16 +98,9 @@ local aimlockcertainplayer = false
 local selectedplayer = nil
 local ignoredplayers = {}
 local wallcheckenabled = false
-local lerpalpha = 1 / 5  -- Default speed: 5 → lerpalpha = 0.2
-
+local lerpalpha = 0.4 -- Default to 1/2.5 ≈ 0.4
 local aimlockOffsetX = 0
 local aimlockOffsetY = 0
-
-local statusGroup = Tabs.Main:AddRightGroupbox("Status", "info")
-local healthLabel = statusGroup:AddLabel("Health: 0")
-local versionLabel = statusGroup:AddLabel("Version: Unknown")
-local fpsLabel = statusGroup:AddLabel("FPS: 0")
-local pingLabel = statusGroup:AddLabel("Ping: 0")
 
 local knifeCloseEnabled = false
 local knifeRange = 10
@@ -124,8 +109,15 @@ local knifeRangeColor = Color3.fromRGB(255, 255, 255)
 local knifeRangeTransparency = 0.5
 local rangeSphere = nil
 local knifeConnection = nil
-
 local SwapWeapon = ReplicatedStorage.SignalManager.SignalEvents.SwapWeapon
+local knifeCrateCount = 0
+local gunCrateCount = 0
+local isOpeningCrates = false
+
+local autoRespawnEnabled = false
+local autoRespawnDelay = 0
+local lastHealth = 100
+local CommandRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Command")
 
 local function GetLocalHRP()
 	if not LocalPlayer.Character then return nil end
@@ -223,74 +215,124 @@ function removehighlight(player)
 	end
 end
 
+local function createtracers()
+	tracerlines = {}
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local line = Drawing.new("Line")
+			line.Thickness = espconfig.tracersize
+			line.Transparency = 1
+			line.Visible = false
+			tracerlines[player] = line
+		end
+	end
+end
+
+local function updatetracers()
+	for player, line in pairs(tracerlines) do
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local root = player.Character.HumanoidRootPart
+			local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
+			if onscreen then
+				line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+				line.To = Vector2.new(screenpos.X, screenpos.Y)
+				line.Color = espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor
+				line.Visible = true
+			else
+				line.Visible = false
+			end
+		else
+			line.Visible = false
+		end
+	end
+end
+
 local function toggletracers()
 	if tracersenabled then
-		RunService:BindToRenderStep("Tracers", Enum.RenderPriority.Camera.Value + 1, function()
-			for _, line in ipairs(tracerlines) do line:Destroy() end
-			tracerlines = {}
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-					local root = player.Character.HumanoidRootPart
-					local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
-					if onscreen then
-						local line = Drawing.new("Line")
-						line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-						line.To = Vector2.new(screenpos.X, screenpos.Y)
-						line.Color = espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor
-						line.Thickness = espconfig.tracersize
-						line.Transparency = 1
-						line.Visible = true
-						table.insert(tracerlines, line)
-					end
-				end
-			end
-		end)
+		createtracers()
+		RunService:BindToRenderStep("Tracers", Enum.RenderPriority.Camera.Value + 1, updatetracers)
 	else
 		RunService:UnbindFromRenderStep("Tracers")
-		for _, line in ipairs(tracerlines) do line:Destroy() end
+		for _, line in pairs(tracerlines) do line:Remove() end
 		tracerlines = {}
+	end
+end
+
+local function createskeletonlines()
+	skeletonlines = {}
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local lines = {}
+			for i = 1, 6 do -- Head-Torso, Torso-Hip, Torso-LeftArm, Torso-RightArm, Hip-LeftLeg, Hip-RightLeg
+				local line = Drawing.new("Line")
+				line.Thickness = 2
+				line.Transparency = 1
+				line.Visible = false
+				lines[i] = line
+			end
+			skeletonlines[player] = lines
+		end
+	end
+end
+
+local function updateskeleton()
+	for player, lines in pairs(skeletonlines) do
+		if player.Character then
+			local char = player.Character
+			local parts = {
+				Head = char:FindFirstChild("Head"),
+				Torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"),
+				Hip = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso"),
+				LeftArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm"),
+				RightArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm"),
+				LeftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"),
+				RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
+			}
+			local color = espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor
+			local function getscreen(part) if part then local pos, visible = Camera:WorldToViewportPoint(part.Position) if visible then return Vector2.new(pos.X, pos.Y) end end end
+			local head = getscreen(parts.Head)
+			local torso = getscreen(parts.Torso)
+			local hip = getscreen(parts.Hip)
+			local la = getscreen(parts.LeftArm)
+			local ra = getscreen(parts.RightArm)
+			local ll = getscreen(parts.LeftLeg)
+			local rl = getscreen(parts.RightLeg)
+			
+			local connections = {
+				{head, torso, lines[1]},
+				{torso, hip, lines[2]},
+				{torso, la, lines[3]},
+				{torso, ra, lines[4]},
+				{hip, ll, lines[5]},
+				{hip, rl, lines[6]}
+			}
+			
+			for _, conn in ipairs(connections) do
+				local p1, p2, line = conn[1], conn[2], conn[3]
+				if p1 and p2 then
+					line.From = p1
+					line.To = p2
+					line.Color = color
+					line.Visible = true
+				else
+					line.Visible = false
+				end
+			end
+		else
+			for _, line in ipairs(lines) do line.Visible = false end
+		end
 	end
 end
 
 local function toggleskeleton()
 	if skeletonenabled then
-		RunService:BindToRenderStep("SkeletonESP", Enum.RenderPriority.Camera.Value + 1, function()
-			for _, line in ipairs(skeletonlines) do line:Destroy() end
-			skeletonlines = {}
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character then
-					local char = player.Character
-					local parts = {
-						Head = char:FindFirstChild("Head"),
-						Torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"),
-						Hip = char:FindFirstChild("LowerTorso") or char:FindFirstChild("Torso"),
-						LeftArm = char:FindFirstChild("LeftUpperArm") or char:FindFirstChild("Left Arm"),
-						RightArm = char:FindFirstChild("RightUpperArm") or char:FindFirstChild("Right Arm"),
-						LeftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"),
-						RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
-					}
-					local color = espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor
-					local function getscreen(part) if part then local pos, visible = Camera:WorldToViewportPoint(part.Position) if visible then return Vector2.new(pos.X, pos.Y) end end end
-					local function drawline(p1, p2) if p1 and p2 then local line = Drawing.new("Line") line.From = p1 line.To = p2 line.Color = color line.Thickness = 2 line.Transparency = 1 line.Visible = true table.insert(skeletonlines, line) end end
-					local head = getscreen(parts.Head)
-					local torso = getscreen(parts.Torso)
-					local hip = getscreen(parts.Hip)
-					local la = getscreen(parts.LeftArm)
-					local ra = getscreen(parts.RightArm)
-					local ll = getscreen(parts.LeftLeg)
-					local rl = getscreen(parts.RightLeg)
-					drawline(head, torso)
-					drawline(torso, hip)
-					drawline(torso, la)
-					drawline(torso, ra)
-					drawline(hip, ll)
-					drawline(hip, rl)
-				end
-			end
-		end)
+		createskeletonlines()
+		RunService:BindToRenderStep("SkeletonESP", Enum.RenderPriority.Camera.Value + 1, updateskeleton)
 	else
 		RunService:UnbindFromRenderStep("SkeletonESP")
-		for _, line in ipairs(skeletonlines) do line:Destroy() end
+		for _, lines in pairs(skeletonlines) do
+			for _, line in ipairs(lines) do line:Remove() end
+		end
 		skeletonlines = {}
 	end
 end
@@ -343,20 +385,36 @@ local function getclosestplayer()
 	return nil
 end
 
+local function getaimpartposition(targetplayer)
+	if not targetplayer or not targetplayer.Character then return nil end
+	if aimpart == "Head" and targetplayer.Character:FindFirstChild("Head") then
+		return targetplayer.Character.Head.Position
+	elseif aimpart == "Torso" then
+		local torso = targetplayer.Character:FindFirstChild("UpperTorso") or targetplayer.Character:FindFirstChild("Torso")
+		if torso then return torso.Position end
+	elseif aimpart == "Feet" and targetplayer.Character:FindFirstChild("HumanoidRootPart") then
+		return targetplayer.Character.HumanoidRootPart.Position + Vector3.new(0, -3, 0)
+	end
+	return nil
+end
+
 local function updateaimlock()
 	if not aimlockenabled then return end
 	local localHRP = GetLocalHRP()
 	if not localHRP then return end
 
 	local targetplayer = aimlockcertainplayer and selectedplayer or getclosestplayer()
-	if targetplayer and targetplayer.Character and targetplayer.Character:FindFirstChild("Head") then
-		local targetposition = targetplayer.Character.Head.Position + Vector3.new(aimlockOffsetX, aimlockOffsetY, 0)
-		local lookdirection = (targetposition - Camera.CFrame.Position).Unit
-		if smoothaimlock then
-			local targetcframe = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
-			Camera.CFrame = Camera.CFrame:Lerp(targetcframe, lerpalpha)
-		else
-			Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
+	if targetplayer then
+		local targetposition = getaimpartposition(targetplayer)
+		if targetposition then
+			targetposition = targetposition + Vector3.new(aimlockOffsetX, aimlockOffsetY, 0)
+			local lookdirection = (targetposition - Camera.CFrame.Position).Unit
+			if smoothaimlock then
+				local targetcframe = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
+				Camera.CFrame = Camera.CFrame:Lerp(targetcframe, lerpalpha)
+			else
+				Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
+			end
 		end
 	end
 end
@@ -434,19 +492,98 @@ local function toggleKnifeSwitch()
 	end
 end
 
+local RollCrate = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RollCrate")
+
+local function openKnifeCrates()
+	if isOpeningCrates then return end
+	isOpeningCrates = true
+	for i = 1, knifeCrateCount do
+		RollCrate:FireServer("KnifeCrate")
+		task.wait(0.1)
+	end
+	isOpeningCrates = false
+end
+
+local function openGunCrates()
+	if isOpeningCrates then return end
+	isOpeningCrates = true
+	for i = 1, gunCrateCount do
+		RollCrate:FireServer("GunCrate")
+		task.wait(0.1)
+	end
+	isOpeningCrates = false
+end
+
+local statusGroup = Tabs.Main:AddRightGroupbox("Status", "info")
+local healthLabel = statusGroup:AddLabel("Health: 0")
+local versionLabel = statusGroup:AddLabel("Version: Unknown")
+local fpsLabel = statusGroup:AddLabel("FPS: 0")
+local pingLabel = statusGroup:AddLabel("Ping: 0")
+
 local characterGroup = Tabs.Main:AddLeftGroupbox("Character", "user")
-characterGroup:AddSlider("WalkSpeed", { Text = "WalkSpeed", Default = 16, Min = 16, Max = 27, Rounding = 1, Callback = function(v) currentwalkspeed = v end })
+characterGroup:AddSlider("WalkSpeed", { Text = "WalkSpeed", Default = 16, Min = 16, Max = 26, Rounding = 1, Callback = function(v) currentwalkspeed = v end })
 characterGroup:AddCheckbox("NoVelocity", { Text = "No Velocity", Default = false, Callback = function(v) noVelocityEnabled = v toggleNoVelocity() end })
 characterGroup:AddDivider()
-characterGroup:AddCheckbox("XRay", { Text = "X-Ray", Default = false, Callback = function(v) xrayenabled = v if v then for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then originaltransparencies[obj] = obj.Transparency obj.Transparency = xraytransparency end end else for obj, t in pairs(originaltransparencies) do if obj and obj.Parent then obj.Transparency = t end end originaltransparencies = {} end end })
-characterGroup:AddSlider("XRayTransparency", { Text = "X-Ray Transparency", Default = 0.6, Min = 0, Max = 1, Rounding = 0.05, Callback = function(v) xraytransparency = v if xrayenabled then for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) and originaltransparencies[obj] then obj.Transparency = v end end end end })
+characterGroup:AddCheckbox("XRay", { Text = "X-Ray", Default = false, Callback = function(v) 
+    xrayenabled = v 
+    if v then 
+        for _, obj in pairs(workspace:GetDescendants()) do 
+            if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then 
+                originaltransparencies[obj] = obj.Transparency 
+                obj.Transparency = xraytransparency 
+            end 
+        end 
+    else 
+        for obj, t in pairs(originaltransparencies) do 
+            if obj and obj.Parent then obj.Transparency = t end 
+        end 
+        originaltransparencies = {} 
+    end 
+end })
+characterGroup:AddSlider("XRayTransparency", { Text = "X-Ray Transparency", Default = 60, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) 
+    xraytransparency = v / 100 
+    if xrayenabled then 
+        for _, obj in pairs(workspace:GetDescendants()) do 
+            if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) and originaltransparencies[obj] then 
+                obj.Transparency = v / 100 
+            end 
+        end 
+    end 
+end })
+
+local otherGroup = Tabs.Main:AddLeftGroupbox("Other", "gamepad-2")
+otherGroup:AddToggle("AutoRespawn", { Text = "Auto Respawn", Default = false, Callback = function(v) autoRespawnEnabled = v end })
+otherGroup:AddSlider("AutoRespawnDelay", { Text = "Auto Respawn Delay (0.1s units)", Default = 0, Min = 0, Max = 30, Rounding = 1, Callback = function(v) autoRespawnDelay = v * 0.1 end })
+otherGroup:AddDivider()
+otherGroup:AddButton("Lobby", function() CommandRemote:FireServer("Lobby") end)
+otherGroup:AddButton("Play", function() CommandRemote:FireServer("Play") end)
 
 local esptabbox = Tabs.Visuals:AddLeftTabbox()
 local esptab = esptabbox:AddTab("ESP")
 local configtab = esptabbox:AddTab("Configurations")
 
-esptab:AddCheckbox("ESP", { Text = "ESP", Default = false, Callback = function(v) espenabled = v if v then for _, p in pairs(Players:GetPlayers()) do createesp(p) end else for p, _ in pairs(espobjects) do removeesp(p) end end end }):AddColorPicker("ESPColor", { Default = Color3.fromRGB(255,255,255), Title = "ESP Color", Callback = function(v) espconfig.espcolor = v end })
-esptab:AddCheckbox("Outline", { Text = "Outline", Default = false, Callback = function(v) outlineenabled = v if v then for _, p in pairs(Players:GetPlayers()) do playerconnections[p.UserId] = {} setupplayerhighlight(p) end else for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end end end }):AddColorPicker("OutlineColor", { Default = Color3.fromRGB(255,255,255), Title = "Outline Color", Callback = function(v) espconfig.outlinecolor = v end }):AddColorPicker("OutlineFillColor", { Default = Color3.fromRGB(255,255,255), Title = "Fill Color", Callback = function(v) espconfig.outlinefillcolor = v end })
+esptab:AddCheckbox("ESP", { Text = "ESP", Default = false, Callback = function(v) 
+    espenabled = v 
+    if v then 
+        for _, p in pairs(Players:GetPlayers()) do createesp(p) end 
+    else 
+        for p, _ in pairs(espobjects) do removeesp(p) end 
+    end 
+end }):AddColorPicker("ESPColor", { Default = Color3.fromRGB(255,255,255), Title = "ESP Color", Callback = function(v) espconfig.espcolor = v end })
+
+esptab:AddCheckbox("Outline", { Text = "Outline", Default = false, Callback = function(v) 
+    outlineenabled = v 
+    if v then 
+        for _, p in pairs(Players:GetPlayers()) do 
+            playerconnections[p.UserId] = {} 
+            setupplayerhighlight(p) 
+        end 
+    else 
+        for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end 
+    end 
+end }):AddColorPicker("OutlineColor", { Default = Color3.fromRGB(255,255,255), Title = "Outline Color", Callback = function(v) espconfig.outlinecolor = v end })
+   :AddColorPicker("OutlineFillColor", { Default = Color3.fromRGB(255,255,255), Title = "Fill Color", Callback = function(v) espconfig.outlinefillcolor = v end })
+
 esptab:AddCheckbox("Tracers", { Text = "Tracers", Default = false, Callback = function(v) tracersenabled = v toggletracers() end }):AddColorPicker("TracerColor", { Default = Color3.fromRGB(255,255,255), Title = "Tracer Color", Callback = function(v) espconfig.tracercolor = v end })
 esptab:AddCheckbox("SkeletonESP", { Text = "Skeleton ESP", Default = false, Callback = function(v) skeletonenabled = v toggleskeleton() end }):AddColorPicker("SkeletonColor", { Default = Color3.fromRGB(255,255,255), Title = "Skeleton Color", Callback = function(v) espconfig.skeletoncolor = v end })
 
@@ -455,16 +592,33 @@ configtab:AddCheckbox("RainbowOutline", { Text = "Rainbow Outline", Default = fa
 configtab:AddCheckbox("RainbowTracers", { Text = "Rainbow Tracers", Default = false, Callback = function(v) espconfig.rainbowtracers = v end })
 configtab:AddCheckbox("RainbowSkeleton", { Text = "Rainbow Skeleton ESP", Default = false, Callback = function(v) espconfig.rainbowskeleton = v end })
 configtab:AddSlider("ESPSize", { Text = "ESP Size", Default = 16, Min = 16, Max = 48, Rounding = 1, Callback = function(v) espconfig.espsize = v end })
-configtab:AddSlider("TracerSize", { Text = "Tracer Size", Default = 2, Min = 0.5, Max = 2, Rounding = 0.1, Callback = function(v) espconfig.tracersize = v end })
-configtab:AddSlider("OutlineTransparency", { Text = "Outline Transparency", Default = 0, Min = 0, Max = 1, Rounding = 0.1, Callback = function(v) espconfig.outlinetransparency = v end })
-configtab:AddSlider("OutlineFillTransparency", { Text = "Outline Fill Transparency", Default = 1, Min = 0, Max = 1, Rounding = 0.1, Callback = function(v) espconfig.outlinefilltransparency = v end })
+configtab:AddSlider("TracerSize", { Text = "Tracer Size", Default = 20, Min = 5, Max = 20, Rounding = 1, Callback = function(v) espconfig.tracersize = v * 0.1 end })
+configtab:AddSlider("OutlineTransparency", { Text = "Outline Transparency", Default = 0, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinetransparency = v / 100 end })
+configtab:AddSlider("OutlineFillTransparency", { Text = "Outline Fill Transparency", Default = 100, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinefilltransparency = v / 100 end })
 configtab:AddSlider("RainbowSpeed", { Text = "Rainbow Speed", Default = 5, Min = 1, Max = 10, Rounding = 1, Callback = function(v) espconfig.rainbowspeed = v end })
 
 local gamegroup = Tabs.Visuals:AddRightGroupbox("Game", "gamepad-2")
 gamegroup:AddSlider("FieldOfView", { Text = "Field of View", Default = 70, Min = 60, Max = 120, Rounding = 1, Callback = function(v) Camera.FieldOfView = v end })
-gamegroup:AddCheckbox("FullBright", { Text = "Full Bright", Default = false, Callback = function(v) fullbrightenabled = v if v then game.Lighting.Brightness = 2 game.Lighting.Ambient = Color3.fromRGB(255,255,255) game.Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255) else game.Lighting.Brightness = originallighting.Brightness game.Lighting.Ambient = originallighting.Ambient game.Lighting.OutdoorAmbient = originallighting.OutdoorAmbient end end })
-gamegroup:AddCheckbox("NoFog", { Text = "No Fog", Default = false, Callback = function(v) nofogenabled = v if v then game.Lighting.FogEnd = 100000 game.Lighting.FogStart = 0 else game.Lighting.FogEnd = originallighting.FogEnd game.Lighting.FogStart = originallighting.FogStart end end })
-gamegroup:AddCheckbox("AntiLag", { Text = "Anti Lag", Default = false, Callback = function(v) antillagenabled = v if v then originalsettings.QualityLevel = settings().Rendering.QualityLevel settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 setfpscap(999) for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("Texture") or obj:IsA("Decal") then originaltextures[obj] = obj.Texture obj.Texture = "" elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then obj.Enabled = false elseif obj:IsA("BasePart") then originalmaterials[obj] = obj.Material obj.Material = Enum.Material.Plastic end end workspace.DescendantAdded:Connect(function(obj) if antillagenabled then if obj:IsA("Texture") or obj:IsA("Decal") then obj.Texture = "" elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then obj.Enabled = false elseif obj:IsA("BasePart") then obj.Material = Enum.Material.Plastic end end end) else if originalsettings.QualityLevel then settings().Rendering.QualityLevel = originalsettings.QualityLevel end setfpscap(60) for obj, t in pairs(originaltextures) do if obj and obj.Parent then obj.Texture = t end end originaltextures = {} for obj, m in pairs(originalmaterials) do if obj and obj.Parent then obj.Material = m end end originalmaterials = {} for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then obj.Enabled = true end end end end })
+gamegroup:AddCheckbox("FullBright", { Text = "Full Bright", Default = false, Callback = function(v) 
+    if v then 
+        game.Lighting.Brightness = 2 
+        game.Lighting.Ambient = Color3.fromRGB(255,255,255) 
+        game.Lighting.OutdoorAmbient = Color3.fromRGB(255,255,255) 
+    else 
+        game.Lighting.Brightness = originallighting.Brightness 
+        game.Lighting.Ambient = originallighting.Ambient 
+        game.Lighting.OutdoorAmbient = originallighting.OutdoorAmbient 
+    end 
+end })
+gamegroup:AddCheckbox("NoFog", { Text = "No Fog", Default = false, Callback = function(v) 
+    if v then 
+        game.Lighting.FogEnd = 100000 
+        game.Lighting.FogStart = 0 
+    else 
+        game.Lighting.FogEnd = originallighting.FogEnd 
+        game.Lighting.FogStart = originallighting.FogStart 
+    end 
+end })
 
 local aimlocktabbox = Tabs.Features:AddLeftTabbox()
 local aimlocktab = aimlocktabbox:AddTab("AimLock")
@@ -476,19 +630,57 @@ aimlocktab:AddCheckbox("WallCheck", { Text = "Wall Check", Default = false, Call
 aimlocktab:AddCheckbox("AimLockCertainPlayer", { Text = "Aimlock Certain Player", Default = false, Callback = function(v) aimlockcertainplayer = v end })
 aimlocktab:AddDropdown("AimLockPlayerSelect", { SpecialType = "Player", ExcludeLocalPlayer = true, Text = "Select Player", Callback = function(v) selectedplayer = v end })
 
-aimlocktab:AddCheckbox("EnableFOV", { Text = "Enable FOV", Default = false, Callback = function(v) fovenabled = v if v then Options.AimLockType.Disabled = true else Options.AimLockType.Disabled = false end end }):AddColorPicker("FOVColor", { Default = Color3.fromRGB(255,255,255), Title = "FOV Color", Callback = function(v) fovcolor = v end })
-aimlocktab:AddCheckbox("ShowFOV", { Text = "Show FOV", Default = false, Callback = function(v) showfov = v if v then if not fovgui then fovgui = Instance.new("ScreenGui") fovgui.Name = "FOVCircle" fovgui.IgnoreGuiInset = true fovgui.Parent = game:GetService("CoreGui") fovframe = Instance.new("Frame") fovframe.Name = "Circle" fovframe.AnchorPoint = Vector2.new(0.5, 0.5) fovframe.Position = UDim2.new(0.5, 0, 0.5, 0) fovframe.BackgroundTransparency = 1 fovframe.BorderSizePixel = 0 fovframe.Parent = fovgui local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(1, 0) corner.Parent = fovframe fovstroke = Instance.new("UIStroke") fovstroke.Color = Color3.fromRGB(255,255,255) fovstroke.Thickness = fovstrokethickness fovstroke.Parent = fovframe fovframe.Size = UDim2.new(0, fovsize, 0, fovsize) end fovframe.Visible = true else if fovframe then fovframe.Visible = false end end end })
+aimlocktab:AddCheckbox("EnableFOV", { Text = "Enable FOV", Default = false, Callback = function(v) 
+    fovenabled = v 
+    if v then Options.AimLockType.Disabled = true else Options.AimLockType.Disabled = false end 
+end }):AddColorPicker("FOVColor", { Default = Color3.fromRGB(255,255,255), Title = "FOV Color", Callback = function(v) fovcolor = v end })
+
+aimlocktab:AddCheckbox("ShowFOV", { Text = "Show FOV", Default = false, Callback = function(v) 
+    showfov = v 
+    if v then 
+        if not fovgui then 
+            fovgui = Instance.new("ScreenGui") 
+            fovgui.Name = "FOVCircle" 
+            fovgui.IgnoreGuiInset = true 
+            fovgui.Parent = game:GetService("CoreGui") 
+            fovframe = Instance.new("Frame") 
+            fovframe.Name = "Circle" 
+            fovframe.AnchorPoint = Vector2.new(0.5, 0.5) 
+            fovframe.Position = UDim2.new(0.5, 0, 0.5, 0) 
+            fovframe.BackgroundTransparency = 1 
+            fovframe.BorderSizePixel = 0 
+            fovframe.Parent = fovgui 
+            local corner = Instance.new("UICorner") 
+            corner.CornerRadius = UDim.new(1, 0) 
+            corner.Parent = fovframe 
+            fovstroke = Instance.new("UIStroke") 
+            fovstroke.Color = Color3.fromRGB(255,255,255) 
+            fovstroke.Thickness = fovstrokethickness 
+            fovstroke.Parent = fovframe 
+            fovframe.Size = UDim2.new(0, fovsize, 0, fovsize) 
+        end 
+        fovframe.Visible = true 
+    else 
+        if fovframe then fovframe.Visible = false end 
+    end 
+end })
 
 aimlockconfigtab:AddSlider("NearestPlayerDistance", { Text = "Nearest Player Lock Distance (Studs)", Default = 1000, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestplayerdistance = v end })
 aimlockconfigtab:AddSlider("NearestMouseDistance", { Text = "Nearest Mouse Lock Distance (Studs)", Default = 500, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestmousedistance = v end })
 aimlockconfigtab:AddSlider("FOVLockDistance", { Text = "FOV Lock Distance (Studs)", Default = 1000, Min = 50, Max = 5000, Rounding = 1, Callback = function(v) fovlockdistance = v end })
 aimlockconfigtab:AddCheckbox("SmoothAimlock", { Text = "Smooth Aimlock", Default = false, Callback = function(v) smoothaimlock = v end })
-aimlockconfigtab:AddSlider("SmoothAimlockSpeed", { Text = "Smooth Aimlock Speed", Default = 5, Min = 1, Max = 100, Rounding = 1, Callback = function(v) lerpalpha = 1 / v end })
+aimlockconfigtab:AddSlider("SmoothAimlockSpeed", { Text = "Smooth Aimlock Speed (lerp alpha)", Default = 400, Min = 100, Max = 1000, Rounding = 0, Callback = function(v) lerpalpha = v / 1000 end })
+aimlockconfigtab:AddDropdown("AimPart", { Values = {"Head", "Torso", "Feet"}, Default = 1, Text = "Aim Part", Callback = function(v) aimpart = v end })
 aimlockconfigtab:AddCheckbox("RainbowFOV", { Text = "Rainbow FOV", Default = false, Callback = function(v) rainbowfov = v end })
 aimlockconfigtab:AddSlider("FOVSize", { Text = "FOV Size", Default = 100, Min = 1, Max = 750, Rounding = 1, Callback = function(v) fovsize = v if fovframe then fovframe.Size = UDim2.new(0, v, 0, v) end end })
 aimlockconfigtab:AddSlider("FOVStrokeThickness", { Text = "FOV Stroke Thickness", Default = 2, Min = 1, Max = 10, Rounding = 1, Callback = function(v) fovstrokethickness = v if fovstroke then fovstroke.Thickness = v end end })
 aimlockconfigtab:AddDivider()
-aimlockconfigtab:AddDropdown("IgnorePlayers", { SpecialType = "Player", ExcludeLocalPlayer = true, Multi = true, Text = "Ignore Players", Callback = function(v) ignoredplayers = {} for p, s in pairs(v) do if s then ignoredplayers[p.Name] = true end end end })
+aimlockconfigtab:AddDropdown("IgnorePlayers", { SpecialType = "Player", ExcludeLocalPlayer = true, Multi = true, Text = "Ignore Players", Callback = function(v) 
+    ignoredplayers = {} 
+    for p, s in pairs(v) do 
+        if s then ignoredplayers[p.Name] = true end 
+    end 
+end })
 
 aimlockconfigtab:AddDivider()
 aimlockconfigtab:AddLabel("Advanced Configurations")
@@ -499,6 +691,11 @@ local featuresGroup = Tabs.Features:AddRightGroupbox("Features", "zap")
 featuresGroup:AddToggle("KnifeCloseToggle", { Text = "Switch To Knife When Close To Player", Default = false, Callback = function(v) knifeCloseEnabled = v toggleKnifeSwitch() end })
 featuresGroup:AddSlider("KnifeRange", { Text = "S.T.K.W.C.T.P. Range", Default = 10, Min = 1, Max = 50, Rounding = 1, Suffix = " studs", Callback = function(v) knifeRange = v updateKnifeRangeSphere() end })
 featuresGroup:AddToggle("ShowKnifeRange", { Text = "Show S.T.K.W.C.T.P. Range", Default = false, Callback = function(v) showKnifeRange = v updateKnifeRangeSphere() end }):AddColorPicker("KnifeRangeColor", { Default = Color3.fromRGB(255,255,255), Title = "Range Color", Transparency = 0.5, Callback = function(v, t) knifeRangeColor = v knifeRangeTransparency = t or 0.5 updateKnifeRangeSphere() end })
+featuresGroup:AddDivider()
+featuresGroup:AddButton("Mass Open Knife Crate", openKnifeCrates)
+featuresGroup:AddSlider("KnifeCrateCount", { Text = "Knife Crate Count To Open", Default = 0, Min = 0, Max = 25, Rounding = 1, Callback = function(v) knifeCrateCount = math.floor(v) end })
+featuresGroup:AddButton("Mass Open Gun Crate", openGunCrates)
+featuresGroup:AddSlider("GunCrateCount", { Text = "Gun Crate Count To Open", Default = 0, Min = 0, Max = 15, Rounding = 1, Callback = function(v) gunCrateCount = math.floor(v) end })
 
 local menugroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "settings")
 menugroup:AddInput("DPIScale", { Default = "100", Text = "DPI Scale", Callback = function(v) local dpi = tonumber(v) if dpi then Library:SetDPIScale(dpi) end end })
@@ -509,15 +706,13 @@ menugroup:AddDropdown("DPIDropdown", { Values = { "50%", "75%", "100%", "125%", 
 menugroup:AddDivider()
 menugroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { NoUI = true, Text = "Menu keybind" })
 menugroup:AddButton("Unload", function() Library:Unload() end)
-menugroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
-menugroup:AddCheckbox("OptOutLog", { Text = "Opt-Out Log", Default = isfile("optout.unx"), Callback = function(v) if v then writefile("optout.unx", "") Library:Notify("Opt-Out Log Enabled", 3) else if isfile("optout.unx") then delfile("optout.unx") end Library:Notify("Opt-Out Log Disabled", 3) end end })
 
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
+ThemeManager:SetFolder("unxhub")
+SaveManager:SetFolder("unxhub")
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
@@ -528,6 +723,34 @@ Players.PlayerAdded:Connect(function(p)
 		if espenabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
 		if outlineenabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
 	end)
+	if tracersenabled then
+		local line = Drawing.new("Line")
+		line.Thickness = espconfig.tracersize
+		line.Transparency = 1
+		line.Visible = false
+		tracerlines[p] = line
+	end
+	if skeletonenabled then
+		local lines = {}
+		for i = 1, 6 do
+			local line = Drawing.new("Line")
+			line.Thickness = 2
+			line.Transparency = 1
+			line.Visible = false
+			lines[i] = line
+		end
+		skeletonlines[p] = lines
+	end
+end)
+
+Players.PlayerRemoving:Connect(function(p)
+	removeesp(p)
+	removehighlight(p)
+	if tracerlines[p] then tracerlines[p]:Remove() tracerlines[p] = nil end
+	if skeletonlines[p] then
+		for _, line in ipairs(skeletonlines[p]) do line:Remove() end
+		skeletonlines[p] = nil
+	end
 end)
 
 for _, p in pairs(Players:GetPlayers()) do
@@ -539,16 +762,36 @@ for _, p in pairs(Players:GetPlayers()) do
 	end
 end
 
+RunService.Heartbeat:Connect(function()
+    if not autoRespawnEnabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("Humanoid") then return end
+    local humanoid = char.Humanoid
+    local health = humanoid.Health
+
+    if health <= 0 and lastHealth > 0 then
+        task.spawn(function()
+            task.wait(autoRespawnDelay)
+            if humanoid.Health <= 0 then
+                CommandRemote:FireServer("Play")
+            end
+        end)
+    end
+    lastHealth = health
+end)
+
+local scriptVersion = tostring(getgenv().unxshared and getgenv().unxshared.version or "Unknown")
+versionLabel:SetText("Version: " .. scriptVersion)
+
 local lastFPS = 0
 local lastPing = 0
-local version = getgenv().unxshared and getgenv().unxshared.version or "Unknown"
 
 RunService.RenderStepped:Connect(function(dt)
 	lastFPS = math.floor(1 / dt)
 	fpsLabel:SetText("FPS: " .. lastFPS)
 	lastPing = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
 	pingLabel:SetText("Ping: " .. lastPing .. "ms")
-	versionLabel:SetText("Version: " .. version)
+	
 	local char = LocalPlayer.Character
 	if char and char:FindFirstChild("Humanoid") then
 		healthLabel:SetText("Health: " .. math.floor(char.Humanoid.Health))
@@ -559,39 +802,11 @@ RunService.RenderStepped:Connect(function(dt)
 	updateaimlock()
 end)
 
-Library:OnUnload(function()
-	for p, _ in pairs(espobjects) do removeesp(p) end
-	for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end
-	RunService:UnbindFromRenderStep("Tracers")
-	RunService:UnbindFromRenderStep("SkeletonESP")
-	if fovgui then fovgui:Destroy() end
-	for _, l in ipairs(tracerlines) do l:Destroy() end
-	for _, l in ipairs(skeletonlines) do l:Destroy() end
-	if noVelocityConnection then noVelocityConnection:Disconnect() end
-	if knifeConnection then knifeConnection:Disconnect() end
-	if rangeSphere then rangeSphere:Destroy() end
-	for obj, t in pairs(originaltransparencies) do if obj and obj.Parent then obj.Transparency = t end end originaltransparencies = {}
-	if fullbrightenabled then game.Lighting.Brightness = originallighting.Brightness game.Lighting.Ambient = originallighting.Ambient game.Lighting.OutdoorAmbient = originallighting.OutdoorAmbient end
-	if nofogenabled then game.Lighting.FogEnd = originallighting.FogEnd game.Lighting.FogStart = originallighting.FogStart end
-	if antillagenabled then if originalsettings.QualityLevel then settings().Rendering.QualityLevel = originalsettings.QualityLevel end setfpscap(60) for obj, t in pairs(originaltextures) do if obj and obj.Parent then obj.Texture = t end end originaltextures = {} for obj, m in pairs(originalmaterials) do if obj and obj.Parent then obj.Material = m end end originalmaterials = {} for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then obj.Enabled = true end end end
-end)
-
 task.spawn(function()
 	while true do
 		task.wait()
 		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 			LocalPlayer.Character.Humanoid.WalkSpeed = currentwalkspeed
-		end
-	end
-end)
-
-RunService.Heartbeat:Connect(function()
-	if xrayenabled then
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
-				if not originaltransparencies[obj] then originaltransparencies[obj] = obj.Transparency end
-				obj.Transparency = xraytransparency
-			end
 		end
 	end
 end)
