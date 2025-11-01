@@ -13,7 +13,7 @@ local function Nukegame()
 end
 
 local BannedUsers = {
-    {UserId = 1, Reason = "Hi Roblox Big Fan"},
+    {UserId = 9850758639, Reason = "You Are Not Welcome Here."},
 }
 
 local BannedGames = {
