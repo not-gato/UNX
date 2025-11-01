@@ -1,5 +1,5 @@
-if game.Players.LocalPlayer.UserId == 9812737355 then
-    setclipboard("thedeltauaerguy join our discord server >:(!!!! now https://discord.gg/KM9dRmQth2")
+if game.Players.LocalPlayer.UserId == 5023975602 then
+    setclipboard("aaron1234567890254 u DO NOT need to join and test UNXHub in all FPS games on roblox gng 🙏💔")
 end
 
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
