@@ -1,3 +1,7 @@
+if game.Players.LocalPlayer.UserId == 9812737355 then
+    setclipboard("thedeltauaerguy join our discord server >:(!!!! now https://discord.gg/4mECMTqSQX")
+end
+
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
