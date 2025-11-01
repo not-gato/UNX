@@ -1,5 +1,5 @@
 if game.Players.LocalPlayer.UserId == 9812737355 then
-    setclipboard("thedeltauaerguy join our discord server >:(!!!! now https://discord.gg/4mECMTqSQX")
+    setclipboard("thedeltauaerguy join our discord server >:(!!!! now https://discord.gg/KM9dRmQth2")
 end
 
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
