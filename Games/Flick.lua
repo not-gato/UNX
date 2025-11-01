@@ -697,7 +697,7 @@ featuresGroup:AddSlider("KnifeCrateCount", { Text = "Knife Crate Count To Open",
 featuresGroup:AddButton("Mass Open Gun Crate", openGunCrates)
 featuresGroup:AddSlider("GunCrateCount", { Text = "Gun Crate Count To Open", Default = 0, Min = 0, Max = 15, Rounding = 1, Callback = function(v) gunCrateCount = math.floor(v) end })
 
-Libary:OnUnload(function()
+Library:OnUnload(function()
 	getgenv().unxshared.isloaded = false
 end)
 
