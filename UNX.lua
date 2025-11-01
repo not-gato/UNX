@@ -195,9 +195,9 @@ y("UNXHub Loader v2.1.0 initialized")
 y("[WARNING]: By executing UNXHub you accept our Terms Of Service")
 y("[WARNING]: Learn more on http://getunx.vercel.app/tos.html")
 y("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
-task.wait(0.3)
+task.wait(0.1)
 y("Creating global variables...")
-task.wait(0.4)
+task.wait(0.05)
 getgenv().unxshared = {
 	version = "2.2.0 (Patch 1)",
 	gamename = ak:GetProductInfo(game.PlaceId).Name,
@@ -209,14 +209,14 @@ getgenv().unxshared = {
 }
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua", true))()
 y("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
-task.wait(0.3)
+task.wait(0.05)
 y("Game: " .. getgenv().unxshared.gamename)
-task.wait(0.3)
+task.wait(0.14)
 y("Checking game compatibility...")
-task.wait(0.4)
+task.wait(0.02)
 local an = game.PlaceId
 y("Game ID: " .. tostring(an))
-task.wait(0.3)
+task.wait(0.12)
 local ao = {
 	[1240123653] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
 	[1632210982] = "https://apigetunx.vercel.app/Games/ZombieAttack.lua",
@@ -227,18 +227,18 @@ local ap, aq
 if ao[an] then
 	getgenv().unxshared.issupported = true
 	y("Game verified, loading " .. getgenv().unxshared.gamename .." | Dev Note: ".. getgenv().unxshared.devnote)
-	task.wait(0.4)
+	task.wait(0.05)
 	y("Fetching game-specific script...")
-	task.wait(0.3)
+	task.wait(0.01)
 	ap, aq = pcall(function()
 		loadstring(game:HttpGet(ao[an]))()
 	end)
 else
 	getgenv().unxshared.issupported = false
 	y("Game not supported, loading universal")
-	task.wait(0.4)
+	task.wait(0.03)
 	y("Fetching universal script...")
-	task.wait(0.3)
+	task.wait(0.1)
 	ap, aq = pcall(function()
 		loadstring(game:HttpGet("https://apigetunx.vercel.app/Games/Universal.lua"))()
 	end)
@@ -246,9 +246,9 @@ end
 if ap then
 	getgenv().unxshared.isloaded = true
 	y("Script loaded successfully")
-	task.wait(0.2)
+	task.wait(0.05)
 	y("Initialization complete!")
-	task.wait(0.5)
+	task.wait(0.7)
 	local ar = TweenInfo.new(0.25)
 	for _, as in ipairs(d:GetDescendants()) do
 		if as:IsA("GuiObject") then
