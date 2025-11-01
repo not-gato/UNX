@@ -205,7 +205,7 @@ getgenv().unxshared = {
 	playername = b.Name,
 	playerid = b.UserId,
 	isloaded = false,
-	devnote = "ok gogl big booty latina"
+	devnote = "https://discord.gg/zpaMS8qUfB"
 }
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua", true))()
 y("Player: " .. b.Name .. " (ID: " .. b.UserId .. ")")
