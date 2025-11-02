@@ -1,3 +1,5 @@
+setclipboard("Fun Fact: if you showcase unxhub and send proof of video & account ownership on our discord server: https://discord.gg/zpaMS8qUfB, u will get a content creator role!")
+
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
