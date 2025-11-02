@@ -1,4 +1,4 @@
--- dveeloper why script no work
+-- The devs on to us (i think...)
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -7,12 +7,12 @@ local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/d
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-Library.ForceCheckbox = false
+Library.ForceCheckbox = true
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "UNXHub",
-    Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown"),
+    Footer = "Version: Unknown, Game: Unknown",
     Icon = 123333102279908,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -39,6 +39,9 @@ local xraytransparency = 0.6
 local originaltransparencies = {}
 local noVelocityEnabled = false
 local noVelocityConnection = nil
+local bunnyHopEnabled = false
+local bunnyHopDelay = 1
+local bunnyHopConnection = nil
 
 local originallighting = {
 	Brightness = game.Lighting.Brightness,
@@ -77,6 +80,7 @@ local activehighlights = {}
 local playerconnections = {}
 local tracerlines = {}
 local skeletonlines = {}
+local shieldedPlayers = {}
 
 local aimlockenabled = false
 local smoothaimlock = false
@@ -98,9 +102,18 @@ local aimlockcertainplayer = false
 local selectedplayer = nil
 local ignoredplayers = {}
 local wallcheckenabled = false
-local lerpalpha = 0.4 -- Default to 1/2.5 ≈ 0.4
+local lerpalpha = 0.4
 local aimlockOffsetX = 0
 local aimlockOffsetY = 0
+
+local autoFireEnabled = false
+local autoFireDelay = 1.8
+local autoFireShootDelay = 0.1
+local nextFireTime = 0
+local currentTarget = nil
+local autoFireConnection = nil
+local autoAimConnection = nil
+local isFiring = false
 
 local knifeCloseEnabled = false
 local knifeRange = 10
@@ -109,15 +122,32 @@ local knifeRangeColor = Color3.fromRGB(255, 255, 255)
 local knifeRangeTransparency = 0.5
 local rangeSphere = nil
 local knifeConnection = nil
-local SwapWeapon = ReplicatedStorage.SignalManager.SignalEvents.SwapWeapon
+local lastKnifeState = nil
+local SwapWeapon = nil
 local knifeCrateCount = 0
 local gunCrateCount = 0
 local isOpeningCrates = false
 
 local autoRespawnEnabled = false
-local autoRespawnDelay = 0
-local lastHealth = 100
-local CommandRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Command")
+local autoRespawnDelay = 1
+local autoRespawnLastFire = 0
+local CommandRemote = nil
+
+local rgbGunKnifeEnabled = false
+local rgbSpeed = 10
+local rgbReapplySpeed = 1
+local rgbHue = 0
+local rgbConnection = nil
+local rgbReapplyConnection = nil
+local lastGunTool = nil
+
+local hitSfxId = ""
+local critSfxId = ""
+local autoApplySfx = false
+local autoApplyDelay = 1
+local autoApplyConnection = nil
+
+getgenv().RGB_ForceNeon = true
 
 local function GetLocalHRP()
 	if not LocalPlayer.Character then return nil end
@@ -135,6 +165,13 @@ local function getrainbowcolor()
 	return Color3.fromHSV(rainbowhue, 1, 1)
 end
 
+local function getPlayerWeapon(player)
+	if not player.Character then return "None" end
+	local tool = player.Character:FindFirstChildWhichIsA("Tool")
+	if tool then return tool.Name end
+	return "None"
+end
+
 local function createesp(player)
 	if player == LocalPlayer or espobjects[player] then return end
 	local nametext = Drawing.new("Text")
@@ -142,6 +179,8 @@ local function createesp(player)
 	nametext.Center = true
 	nametext.Outline = true
 	nametext.Color = espconfig.espcolor
+	nametext.Font = 2
+	nametext.Visible = false
 	espobjects[player] = { Name = nametext }
 end
 
@@ -157,13 +196,16 @@ local function updateesp()
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local hrp = player.Character.HumanoidRootPart
 			local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
-			local color = espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor
+			local isShielded = shieldedPlayers[player]
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor)
 			esp.Name.Color = color
 			esp.Name.Size = espconfig.espsize
 			if onscreen then
 				local distance = (Camera.CFrame.Position - hrp.Position).Magnitude
+				local weapon = getPlayerWeapon(player)
+				local prefix = isShielded and "[SHIELDED] " or ""
 				esp.Name.Position = Vector2.new(pos.X, pos.Y - 20)
-				esp.Name.Text = player.Name .. " [STUDS: " .. math.floor(distance) .. "]"
+				esp.Name.Text = prefix .. player.Name .. " | " .. math.floor(distance) .. " studs | " .. weapon
 				esp.Name.Visible = true
 			else
 				esp.Name.Visible = false
@@ -175,6 +217,7 @@ local function updateesp()
 end
 
 local function applyhighlighttocharacter(player, character)
+	if not character then return end
 	local userid = player.UserId
 	if activehighlights[userid] then activehighlights[userid]:Destroy() end
 	local highlighter = Instance.new("Highlight")
@@ -191,15 +234,19 @@ local function setupplayerhighlight(player)
 	local userid = player.UserId
 	playerconnections[userid] = playerconnections[userid] or {}
 	local function oncharacteradded(character)
-		local humanoid = character:WaitForChild("Humanoid")
-		if outlineenabled then applyhighlighttocharacter(player, character) end
-		table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
-			local highlight = activehighlights[userid]
-			if highlight then
-				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
-			end
-		end))
-		table.insert(playerconnections[userid], humanoid.Died:Connect(function() removehighlight(player) end))
+		if not character then return end
+		task.spawn(function()
+			local humanoid = character:WaitForChild("Humanoid", 5)
+			if not humanoid then return end
+			if outlineenabled then applyhighlighttocharacter(player, character) end
+			table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
+				local highlight = activehighlights[userid]
+				if highlight then
+					highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
+				end
+			end))
+			table.insert(playerconnections[userid], humanoid.Died:Connect(function() removehighlight(player) end))
+		end)
 	end
 	local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
 	table.insert(playerconnections[userid], charaddedconn)
@@ -210,7 +257,7 @@ function removehighlight(player)
 	local userid = player.UserId
 	if activehighlights[userid] then activehighlights[userid]:Destroy() activehighlights[userid] = nil end
 	if playerconnections[userid] then
-		for _, conn in pairs(playerconnections[userid]) do conn:Disconnect() end
+		for _, conn in pairs(playerconnections[userid]) do if conn then conn:Disconnect() end end
 		playerconnections[userid] = nil
 	end
 end
@@ -233,10 +280,12 @@ local function updatetracers()
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local root = player.Character.HumanoidRootPart
 			local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
+			local isShielded = shieldedPlayers[player]
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor)
 			if onscreen then
 				line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
 				line.To = Vector2.new(screenpos.X, screenpos.Y)
-				line.Color = espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor
+				line.Color = color
 				line.Visible = true
 			else
 				line.Visible = false
@@ -263,7 +312,7 @@ local function createskeletonlines()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
 			local lines = {}
-			for i = 1, 6 do -- Head-Torso, Torso-Hip, Torso-LeftArm, Torso-RightArm, Hip-LeftLeg, Hip-RightLeg
+			for i = 1, 6 do
 				local line = Drawing.new("Line")
 				line.Thickness = 2
 				line.Transparency = 1
@@ -288,7 +337,8 @@ local function updateskeleton()
 				LeftLeg = char:FindFirstChild("LeftUpperLeg") or char:FindFirstChild("Left Leg"),
 				RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
 			}
-			local color = espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor
+			local isShielded = shieldedPlayers[player]
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor)
 			local function getscreen(part) if part then local pos, visible = Camera:WorldToViewportPoint(part.Position) if visible then return Vector2.new(pos.X, pos.Y) end end end
 			local head = getscreen(parts.Head)
 			local torso = getscreen(parts.Torso)
@@ -335,6 +385,24 @@ local function toggleskeleton()
 		end
 		skeletonlines = {}
 	end
+end
+
+local function applyShieldEffect(player)
+	if player == LocalPlayer then return end
+	shieldedPlayers[player] = true
+	if activehighlights[player.UserId] then
+		activehighlights[player.UserId].OutlineColor = Color3.fromRGB(255, 0, 0)
+		activehighlights[player.UserId].FillColor = Color3.fromRGB(255, 0, 0)
+	end
+	task.delay(1.5, function()
+		if shieldedPlayers[player] then
+			shieldedPlayers[player] = nil
+			if activehighlights[player.UserId] then
+				activehighlights[player.UserId].OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
+				activehighlights[player.UserId].FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+			end
+		end
+	end)
 end
 
 local function getclosestplayer()
@@ -446,6 +514,23 @@ local function toggleNoVelocity()
 	end
 end
 
+local function toggleBunnyHop()
+	if bunnyHopEnabled then
+		bunnyHopConnection = RunService.Heartbeat:Connect(function()
+			local char = LocalPlayer.Character
+			if not char or not char:FindFirstChild("Humanoid") then return end
+			local humanoid = char.Humanoid
+
+			if humanoid:GetState() == Enum.HumanoidStateType.Running and humanoid.FloorMaterial ~= Enum.Material.Air then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				task.wait(bunnyHopDelay)
+			end
+		end)
+	else
+		if bunnyHopConnection then bunnyHopConnection:Disconnect() bunnyHopConnection = nil end
+	end
+end
+
 local function updateKnifeRangeSphere()
 	if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
 		if rangeSphere then rangeSphere.Transparency = 1 end
@@ -472,47 +557,300 @@ local function updateKnifeRangeSphere()
 	end
 end
 
-local function toggleKnifeSwitch()
-	if knifeCloseEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-		knifeConnection = RunService.Heartbeat:Connect(function()
-			if not knifeCloseEnabled or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-			local root = LocalPlayer.Character.HumanoidRootPart
-			for _, player in ipairs(Players:GetPlayers()) do
-				if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-					local distance = (root.Position - player.Character.HumanoidRootPart.Position).Magnitude
-					if distance <= knifeRange then
-						SwapWeapon:Fire()
-						break
+local function applyRGBToGun(toolModel, hue)
+	if not toolModel then return end
+	local faces = Enum.NormalId:GetEnumItems()
+	local forceNeon = getgenv().RGB_ForceNeon == true
+	for _, part in ipairs(toolModel:GetDescendants()) do
+		if part:IsA("UnionOperation") or part:IsA("BasePart") then
+			if rgbGunKnifeEnabled and forceNeon then
+				part.Material = Enum.Material.Neon
+			end
+			if rgbGunKnifeEnabled then
+				part.Color = Color3.fromHSV(hue, 1, 1)
+				part.UsePartColor = true
+				local light = part:FindFirstChildOfClass("SpotLight") or Instance.new("SpotLight")
+				light.Color = Color3.fromHSV(hue, 1, 1)
+				light.Range = 18
+				light.Brightness = 5
+				light.Face = faces[math.random(1, #faces)]
+				light.Angle = 90
+				light.Parent = part
+			end
+		end
+	end
+end
+
+local function toggleRGBGunKnife()
+	if rgbGunKnifeEnabled then
+		local localTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
+		if localTool then lastGunTool = localTool end
+		rgbConnection = RunService.Heartbeat:Connect(function()
+			rgbHue = (rgbHue + (rgbSpeed / 5000)) % 1
+			if LocalPlayer.Character then
+				for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
+					if tool:IsA("Tool") then
+						for _, model in ipairs(tool:GetChildren()) do
+							if model:IsA("Model") then
+								applyRGBToGun(model, rgbHue)
+							end
+						end
+					end
+				end
+			end
+		end)
+		rgbReapplyConnection = RunService.Heartbeat:Connect(function()
+			task.wait(rgbReapplySpeed)
+			if lastGunTool and lastGunTool.Parent then
+				for _, model in ipairs(lastGunTool:GetChildren()) do
+					if model:IsA("Model") then
+						applyRGBToGun(model, rgbHue)
 					end
 				end
 			end
 		end)
 	else
-		if knifeConnection then knifeConnection:Disconnect() knifeConnection = nil end
+		if rgbConnection then rgbConnection:Disconnect() rgbConnection = nil end
+		if rgbReapplyConnection then rgbReapplyConnection:Disconnect() rgbReapplyConnection = nil end
+		if lastGunTool then
+			for _, model in ipairs(lastGunTool:GetDescendants()) do
+				if model:IsA("BasePart") or model:IsA("UnionOperation") then
+					local light = model:FindFirstChildOfClass("SpotLight")
+					if light then light:Destroy() end
+				end
+			end
+		end
 	end
 end
 
-local RollCrate = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RollCrate")
+local function anyEnemyInRange()
+	local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return false end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+			local dist = (root.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+			if dist <= knifeRange then return true end
+		end
+	end
+	return false
+end
 
+local function toggleKnifeSwitch()
+	if knifeCloseEnabled then
+		knifeConnection = RunService.Heartbeat:Connect(function()
+			if not knifeCloseEnabled then return end
+			local inRange = anyEnemyInRange()
+			local shouldBeKnife = inRange
+			if lastKnifeState == nil or lastKnifeState ~= shouldBeKnife then
+				if SwapWeapon then SwapWeapon:Fire() end
+				lastKnifeState = shouldBeKnife
+			end
+		end)
+	else
+		if knifeConnection then knifeConnection:Disconnect() knifeConnection = nil end
+		lastKnifeState = nil
+	end
+end
+
+local RollCrate = nil
 local function openKnifeCrates()
 	if isOpeningCrates then return end
 	isOpeningCrates = true
 	for i = 1, knifeCrateCount do
-		RollCrate:FireServer("KnifeCrate")
+		if RollCrate then RollCrate:FireServer("KnifeCrate") end
+		task.wait(0.1)
+	end
+	isOpeningCrates = false
+end
+local function openGunCrates()
+	if isOpeningCrates then return end
+	isOpeningCrates = true
+	for i = 1, gunCrateCount do
+		if RollCrate then RollCrate:FireServer("GunCrate") end
 		task.wait(0.1)
 	end
 	isOpeningCrates = false
 end
 
-local function openGunCrates()
-	if isOpeningCrates then return end
-	isOpeningCrates = true
-	for i = 1, gunCrateCount do
-		RollCrate:FireServer("GunCrate")
+local function applyCustomSFX()
+	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+	if not playerGui then return end
+	local effect = playerGui:FindFirstChild("Effect")
+	if not effect then return end
+	local hitSound = effect:FindFirstChild("Bang")
+	local critSound = effect:FindFirstChild("Crit")
+	if hitSound and hitSfxId ~= "" then hitSound.SoundId = "rbxassetid://" .. hitSfxId end
+	if critSound and critSfxId ~= "" then critSound.SoundId = "rbxassetid://" .. critSfxId end
+end
+
+local function toggleAutoApplySFX()
+	if autoApplySfx then
+		autoApplyConnection = RunService.Heartbeat:Connect(function()
+			task.wait(autoApplyDelay)
+			applyCustomSFX()
+		end)
+	else
+		if autoApplyConnection then autoApplyConnection:Disconnect() autoApplyConnection = nil end
+	end
+end
+
+local AimWeapon = nil
+local AimStateChanged = nil
+local FireWeaponMobile = nil
+local Sound_Request = nil
+local CheckFire = nil
+local CheckShot = nil
+local ProjectileRender = nil
+local ProjectileFinished = nil
+
+local function waitForRemote(path, name)
+	while not path:FindFirstChild(name) do
 		task.wait(0.1)
 	end
-	isOpeningCrates = false
+	return path:FindFirstChild(name)
 end
+
+task.spawn(function()
+	local signalEvents = ReplicatedStorage:WaitForChild("SignalManager"):WaitForChild("SignalEvents")
+	AimWeapon = waitForRemote(signalEvents, "AimWeapon")
+	AimStateChanged = waitForRemote(signalEvents, "AimStateChanged")
+	FireWeaponMobile = waitForRemote(signalEvents, "FireWeaponMoblie")
+	
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	CommandRemote = waitForRemote(remotes, "Command")
+	RollCrate = waitForRemote(remotes, "RollCrate")
+	
+	Sound_Request = waitForRemote(ReplicatedStorage:WaitForChild("SoundModule"), "Sound_RequestFromServer_C2S")
+	
+	CheckFire = waitForRemote(LocalPlayer:WaitForChild("ClientRemotes"), "CheckFire")
+	CheckShot = waitForRemote(LocalPlayer.ClientRemotes, "CheckShot")
+	
+	local gunModules = ReplicatedStorage:WaitForChild("ModuleScripts"):WaitForChild("GunModules"):WaitForChild("Remote")
+	ProjectileRender = waitForRemote(gunModules, "ProjectileRender")
+	ProjectileFinished = waitForRemote(gunModules, "ProjectileFinished")
+	
+	SwapWeapon = waitForRemote(signalEvents, "SwapWeapon")
+end)
+
+local aiming = false
+local function startAim(head)
+	if aiming then return end
+	if AimStateChanged then AimStateChanged:Fire(true) end
+	if AimWeapon then AimWeapon:Fire(Enum.UserInputState.Begin) end
+	Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
+	aiming = true
+end
+
+local function stopAim()
+	if not aiming then return end
+	if AimStateChanged then AimStateChanged:Fire(false) end
+	if AimWeapon then AimWeapon:Fire(Enum.UserInputState.End) end
+	aiming = false
+end
+
+local function fireOnce(head)
+	if isFiring then return end
+	isFiring = true
+	local ts = os.clock()
+	local muz = (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Torso") and LocalPlayer.Character.Torso.Position) or Camera.CFrame.Position
+	local hit = head.Position
+	local dir = (hit - muz).Unit
+	local vel = dir * 800
+
+	if Sound_Request then Sound_Request:FireServer(LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Torso") or Camera, "rbxassetid://3821795742") end
+	if CheckFire then CheckFire:FireServer(ts, hit) end
+	local cf = CFrame.lookAt(hit, muz)
+	if CheckShot then CheckShot:FireServer(0,0,1,0.8, cf, muz, head, 6310, ts) end
+	if ProjectileRender then ProjectileRender:FireServer(ts, LocalPlayer.Character, muz, vel, 130, 1, Vector3.zero, 5, "Bullet") end
+	if FireWeaponMobile then
+		FireWeaponMobile:Fire(Enum.UserInputState.Begin)
+		task.wait(autoFireShootDelay)
+		FireWeaponMobile:Fire(Enum.UserInputState.End)
+	end
+	task.delay(0.1, function()
+		if ProjectileFinished then ProjectileFinished:FireServer(ts, head.CFrame, "Gib_T", false, 15, "rbxassetid://2814354338") end
+	end)
+	task.delay(autoFireDelay, function()
+		isFiring = false
+	end)
+end
+
+local function toggleAutoFire()
+	if autoFireEnabled then
+		currentTarget = nil
+		nextFireTime = 0
+		isFiring = false
+
+		autoAimConnection = RunService.RenderStepped:Connect(updateaimlock)
+
+		autoFireConnection = RunService.Heartbeat:Connect(function()
+			if not (autoFireEnabled and aimlockenabled) then return end
+			local localHRP = GetLocalHRP()
+			if not localHRP then 
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return 
+			end
+
+			local targetplayer = aimlockcertainplayer and selectedplayer or getclosestplayer()
+			if not targetplayer or not targetplayer.Character then
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return
+			end
+
+			local head = targetplayer.Character:FindFirstChild("Head")
+			if not head then
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return
+			end
+
+			local hum = targetplayer.Character:FindFirstChild("Humanoid")
+			if not hum or hum.Health <= 0 then
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return
+			end
+
+			if targetplayer ~= currentTarget then
+				currentTarget = targetplayer
+				startAim(head)
+			end
+
+			if not isFiring then
+				fireOnce(head)
+			end
+		end)
+	else
+		if autoFireConnection then autoFireConnection:Disconnect() autoFireConnection = nil end
+		if autoAimConnection then autoAimConnection:Disconnect() autoAimConnection = nil end
+		currentTarget = nil
+		isFiring = false
+		stopAim()
+	end
+end
+
+local function toggleAimlock()
+	if aimlockenabled and not autoFireEnabled then
+		autoAimConnection = RunService.RenderStepped:Connect(updateaimlock)
+	else
+		if autoAimConnection then autoAimConnection:Disconnect() autoAimConnection = nil end
+	end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+	aiming = false
+	currentTarget = nil
+end)
 
 local statusGroup = Tabs.Main:AddRightGroupbox("Status", "info")
 local healthLabel = statusGroup:AddLabel("Health: 0")
@@ -523,6 +861,8 @@ local pingLabel = statusGroup:AddLabel("Ping: 0")
 local characterGroup = Tabs.Main:AddLeftGroupbox("Character", "user")
 characterGroup:AddSlider("WalkSpeed", { Text = "WalkSpeed", Default = 16, Min = 16, Max = 26, Rounding = 1, Callback = function(v) currentwalkspeed = v end })
 characterGroup:AddCheckbox("NoVelocity", { Text = "No Velocity", Default = false, Callback = function(v) noVelocityEnabled = v toggleNoVelocity() end })
+characterGroup:AddCheckbox("BunnyHop", { Text = "Bunny Hop", Default = false, Callback = function(v) bunnyHopEnabled = v toggleBunnyHop() end })
+characterGroup:AddSlider("BunnyHopDelay", { Text = "Bunny Hop Delay", Default = 1, Min = 0, Max = 5, Rounding = 2, Suffix = "s", Callback = function(v) bunnyHopDelay = v end })
 characterGroup:AddDivider()
 characterGroup:AddCheckbox("XRay", { Text = "X-Ray", Default = false, Callback = function(v) 
     xrayenabled = v 
@@ -552,11 +892,36 @@ characterGroup:AddSlider("XRayTransparency", { Text = "X-Ray Transparency", Defa
 end })
 
 local otherGroup = Tabs.Main:AddLeftGroupbox("Other", "gamepad-2")
-otherGroup:AddToggle("AutoRespawn", { Text = "Auto Respawn", Default = false, Callback = function(v) autoRespawnEnabled = v end })
-otherGroup:AddSlider("AutoRespawnDelay", { Text = "Auto Respawn Delay (0.1s units)", Default = 0, Min = 0, Max = 30, Rounding = 1, Callback = function(v) autoRespawnDelay = v * 0.1 end })
+otherGroup:AddToggle("AutoRespawn", { Text = "Auto Respawn", Default = false, Callback = function(v) 
+	autoRespawnEnabled = v 
+	if v then
+		task.spawn(function()
+			while autoRespawnEnabled do
+				if not workspace:FindFirstChild(LocalPlayer.Name) then
+					if tick() - autoRespawnLastFire >= 1 then
+						if CommandRemote then CommandRemote:FireServer("Play") end
+						autoRespawnLastFire = tick()
+					end
+				end
+				task.wait(autoRespawnDelay)
+			end
+		end)
+	end
+end })
+otherGroup:AddSlider("AutoRespawnDelay", { 
+	Text = "Auto Respawn Delay", 
+	Default = 1, 
+	Min = 1, 
+	Max = 30, 
+	Rounding = 1, 
+	Suffix = "s", 
+	Callback = function(v) 
+		autoRespawnDelay = v 
+	end 
+})
 otherGroup:AddDivider()
-otherGroup:AddButton("Lobby", function() CommandRemote:FireServer("Lobby") end)
-otherGroup:AddButton("Play", function() CommandRemote:FireServer("Play") end)
+otherGroup:AddButton("Lobby", function() if CommandRemote then CommandRemote:FireServer("Lobby") end end)
+otherGroup:AddButton("Play", function() if CommandRemote then CommandRemote:FireServer("Play") end end)
 
 local esptabbox = Tabs.Visuals:AddLeftTabbox()
 local esptab = esptabbox:AddTab("ESP")
@@ -565,9 +930,11 @@ local configtab = esptabbox:AddTab("Configurations")
 esptab:AddCheckbox("ESP", { Text = "ESP", Default = false, Callback = function(v) 
     espenabled = v 
     if v then 
-        for _, p in pairs(Players:GetPlayers()) do createesp(p) end 
+        for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then createesp(p) end end
+        RunService:BindToRenderStep("ESPUpdate", Enum.RenderPriority.Camera.Value + 1, updateesp)
     else 
-        for p, _ in pairs(espobjects) do removeesp(p) end 
+        for p, _ in pairs(espobjects) do removeesp(p) end
+        RunService:UnbindFromRenderStep("ESPUpdate")
     end 
 end }):AddColorPicker("ESPColor", { Default = Color3.fromRGB(255,255,255), Title = "ESP Color", Callback = function(v) espconfig.espcolor = v end })
 
@@ -575,8 +942,10 @@ esptab:AddCheckbox("Outline", { Text = "Outline", Default = false, Callback = fu
     outlineenabled = v 
     if v then 
         for _, p in pairs(Players:GetPlayers()) do 
-            playerconnections[p.UserId] = {} 
-            setupplayerhighlight(p) 
+            if p ~= LocalPlayer then
+                playerconnections[p.UserId] = {} 
+                setupplayerhighlight(p) 
+            end 
         end 
     else 
         for _, p in pairs(Players:GetPlayers()) do removehighlight(p) end 
@@ -624,9 +993,15 @@ local aimlocktabbox = Tabs.Features:AddLeftTabbox()
 local aimlocktab = aimlocktabbox:AddTab("AimLock")
 local aimlockconfigtab = aimlocktabbox:AddTab("Configurations")
 
-aimlocktab:AddCheckbox("AimLock", { Text = "Activate Aimlock", Default = false, Callback = function(v) aimlockenabled = v end })
+aimlocktab:AddCheckbox("AimLock", { Text = "Activate Aimlock", Default = false, Callback = function(v) aimlockenabled = v toggleAimlock() if autoFireEnabled then toggleAutoFire() end end })
 aimlocktab:AddDropdown("AimLockType", { Values = {"Nearest Player", "Nearest Mouse"}, Default = 1, Text = "Aimlock Type", Callback = function(v) aimlocktype = v end })
 aimlocktab:AddCheckbox("WallCheck", { Text = "Wall Check", Default = false, Callback = function(v) wallcheckenabled = v end })
+
+aimlocktab:AddToggle("AutoFire", { Text = "Auto-Fire (W.I.P)", Default = false, Callback = function(v) autoFireEnabled = v toggleAutoFire() end })
+aimlocktab:AddSlider("AutoFireDelay", { Text = "Auto-Fire Delay (W.I.P)", Default = 1.8, Min = 1.7, Max = 3.0, Rounding = 2, Suffix = "s", Callback = function(v) autoFireDelay = v end })
+aimlocktab:AddSlider("AutoFireShootDelay", { Text = "Auto-Fire Shoot Delay (W.I.P)", Default = 0.1, Min = 0.1, Max = 1, Rounding = 2, Suffix = "s", Callback = function(v) autoFireShootDelay = v end })
+aimlocktab:AddLabel("<font color='rgb(255,0,0)'><u>CAUTION: This Feature Is Work In Progress (W.I.P), U Should Only Use This On Accounts That u Do <b>NOT</b> Care, <b>YOU HAVE BEEN WARNED.</b></u></font>", true)
+
 aimlocktab:AddCheckbox("AimLockCertainPlayer", { Text = "Aimlock Certain Player", Default = false, Callback = function(v) aimlockcertainplayer = v end })
 aimlocktab:AddDropdown("AimLockPlayerSelect", { SpecialType = "Player", ExcludeLocalPlayer = true, Text = "Select Player", Callback = function(v) selectedplayer = v end })
 
@@ -697,8 +1072,20 @@ featuresGroup:AddSlider("KnifeCrateCount", { Text = "Knife Crate Count To Open",
 featuresGroup:AddButton("Mass Open Gun Crate", openGunCrates)
 featuresGroup:AddSlider("GunCrateCount", { Text = "Gun Crate Count To Open", Default = 0, Min = 0, Max = 15, Rounding = 1, Callback = function(v) gunCrateCount = math.floor(v) end })
 
+local funGroup = Tabs.Features:AddRightGroupbox("Fun", "party-popper")
+funGroup:AddToggle("RGBGunKnife", { Text = "RGB Gun/Knife", Default = false, Callback = function(v) rgbGunKnifeEnabled = v toggleRGBGunKnife() end })
+funGroup:AddSlider("RGBSpeed", { Text = "RGB Speed", Default = 10, Min = 1, Max = 50, Rounding = 0, Callback = function(v) rgbSpeed = v end })
+funGroup:AddSlider("RGBReapplySpeed", { Text = "RGB Re-Apply Speed", Default = 1, Min = 0, Max = 5, Rounding = 1, Suffix = "s", Callback = function(v) rgbReapplySpeed = v end })
+funGroup:AddToggle("RGBForceNeon", { Text = "Change Material To Neon", Default = true, Callback = function(v) getgenv().RGB_ForceNeon = v end })
+funGroup:AddDivider()
+funGroup:AddInput("HitSFX", { Default = "", Text = "Hit SFX", Placeholder = "rbxassetid://...", Callback = function(v) hitSfxId = v:gsub("rbxassetid://", "") end })
+funGroup:AddInput("CritSFX", { Default = "", Text = "Critical SFX", Placeholder = "rbxassetid://...", Callback = function(v) critSfxId = v:gsub("rbxassetid://", "") end })
+funGroup:AddButton("Apply Custom SFX", applyCustomSFX)
+funGroup:AddToggle("AutoApplySFX", { Text = "Auto Apply Custom SFX", Default = false, Callback = function(v) autoApplySfx = v toggleAutoApplySFX() end })
+funGroup:AddSlider("AutoApplyDelay", { Text = "Auto Apply Delay", Default = 1, Min = 0, Max = 5, Rounding = 2, Suffix = "s", Callback = function(v) autoApplyDelay = v end })
+
 Library:OnUnload(function()
-	getgenv().unxshared.isloaded = false
+	game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
 end)
 
 local menugroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "settings")
@@ -738,35 +1125,39 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 Players.PlayerAdded:Connect(function(p)
-	if espenabled then createesp(p) end
-	if outlineenabled then playerconnections[p.UserId] = {} setupplayerhighlight(p) end
-	p.CharacterAdded:Connect(function(c)
-		if espenabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
-		if outlineenabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
-	end)
-	if tracersenabled then
-		local line = Drawing.new("Line")
-		line.Thickness = espconfig.tracersize
-		line.Transparency = 1
-		line.Visible = false
-		tracerlines[p] = line
-	end
-	if skeletonenabled then
-		local lines = {}
-		for i = 1, 6 do
+	if p ~= LocalPlayer then
+		if espenabled then createesp(p) end
+		if outlineenabled then playerconnections[p.UserId] = {} setupplayerhighlight(p) end
+		if tracersenabled then
 			local line = Drawing.new("Line")
-			line.Thickness = 2
+			line.Thickness = espconfig.tracersize
 			line.Transparency = 1
 			line.Visible = false
-			lines[i] = line
+			tracerlines[p] = line
 		end
-		skeletonlines[p] = lines
+		if skeletonenabled then
+			local lines = {}
+			for i = 1, 6 do
+				local line = Drawing.new("Line")
+				line.Thickness = 2
+				line.Transparency = 1
+				line.Visible = false
+				lines[i] = line
+			end
+			skeletonlines[p] = lines
+		end
+		p.CharacterAdded:Connect(function(c)
+			applyShieldEffect(p)
+			if espenabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
+			if outlineenabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
+		end)
 	end
 end)
 
 Players.PlayerRemoving:Connect(function(p)
 	removeesp(p)
 	removehighlight(p)
+	shieldedPlayers[p] = nil
 	if tracerlines[p] then tracerlines[p]:Remove() tracerlines[p] = nil end
 	if skeletonlines[p] then
 		for _, line in ipairs(skeletonlines[p]) do line:Remove() end
@@ -777,42 +1168,16 @@ end)
 for _, p in pairs(Players:GetPlayers()) do
 	if p ~= LocalPlayer then
 		p.CharacterAdded:Connect(function(c)
+			applyShieldEffect(p)
 			if espenabled then task.wait(0.1) if not espobjects[p] then createesp(p) end end
 			if outlineenabled then task.wait(0.1) applyhighlighttocharacter(p, c) end
 		end)
 	end
 end
 
-RunService.Heartbeat:Connect(function()
-    if not autoRespawnEnabled then return end
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("Humanoid") then return end
-    local humanoid = char.Humanoid
-    local health = humanoid.Health
-
-    if health <= 0 and lastHealth > 0 then
-        task.spawn(function()
-            task.wait(autoRespawnDelay)
-            if humanoid.Health <= 0 then
-                CommandRemote:FireServer("Play")
-            end
-        end)
-    end
-    lastHealth = health
-end)
-
-local scriptVersion = tostring(getgenv().unxshared and getgenv().unxshared.version or "Unknown")
-versionLabel:SetText("Version: " .. scriptVersion)
-
-local lastFPS = 0
-local lastPing = 0
-
 RunService.RenderStepped:Connect(function(dt)
-	lastFPS = math.floor(1 / dt)
-	fpsLabel:SetText("FPS: " .. lastFPS)
-	lastPing = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-	pingLabel:SetText("Ping: " .. lastPing .. "ms")
-	
+	fpsLabel:SetText("FPS: " .. math.floor(1 / dt))
+	pingLabel:SetText("Ping: " .. math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) .. "ms")
 	local char = LocalPlayer.Character
 	if char and char:FindFirstChild("Humanoid") then
 		healthLabel:SetText("Health: " .. math.floor(char.Humanoid.Health))
@@ -820,20 +1185,6 @@ RunService.RenderStepped:Connect(function(dt)
 		healthLabel:SetText("Health: 0")
 	end
 	updateKnifeRangeSphere()
-	updateaimlock()
-end)
-
-task.spawn(function()
-	while true do
-		task.wait()
-		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-			LocalPlayer.Character.Humanoid.WalkSpeed = currentwalkspeed
-		end
-	end
-end)
-
-RunService.RenderStepped:Connect(function()
-	if espenabled then updateesp() end
 	if outlineenabled then
 		for _, h in pairs(activehighlights) do
 			if h then
@@ -843,6 +1194,15 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 	updatefovcircle()
+end)
+
+task.spawn(function()
+	while true do
+		task.wait()
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+			LocalPlayer.Character.Humanoid.WalkSpeed = currentwalkspeed
+		end
+	end
 end)
 
 Library.ToggleKeybind = Options.MenuKeybind
