@@ -1,7 +1,3 @@
-if game.Players.LocalPlayer.UserId == 5023975602 then
-    setclipboard("aaron1234567890254 u DO NOT need to join and test UNXHub in all FPS games on roblox gng 🙏💔")
-end
-
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
@@ -203,7 +199,7 @@ task.wait(0.1)
 y("Creating global variables...")
 task.wait(0.05)
 getgenv().unxshared = {
-	version = "2.2.0 (Patch 1)",
+	version = "2.2.0 (Mega Patch 2)",
 	gamename = ak:GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
