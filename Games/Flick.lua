@@ -1,6 +1,5 @@
 --[[
-This Roblox Lua script loads the Obsidian UI library to create "UNXHub," a feature-rich cheat menu for a shooter game, enabling ESP visuals (names, outlines, tracers, skeletons with rainbow options), aimlock/auto-fire with FOV and wall checks, character mods (walkspeed, bunny hop, no velocity, X-ray), weapon tweaks (RGB effects, auto-knife switch, crate opening), custom SFX, fullbright/no fog, auto-respawn, and configurable UI themes/saves.
-- Grok 3 Fast | 2025
+bug fixes wowwwww!
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
@@ -14,11 +13,11 @@ Library.ForceCheckbox = true
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
-    Title = "UNXHub",
-    Footer = "Version: Unknown, Game: Unknown",
-    Icon = 123333102279908,
-    NotifySide = "Right",
-    ShowCustomCursor = true,
+	Title = "UNXHub",
+	Footer = "Version: "..getgenv().unxshared.version..", Game: "..getgenv().unxshared.gamename,
+	Icon = 123333102279908,
+	NotifySide = "Right",
+	ShowCustomCursor = true,
 })
 
 local Tabs = {
@@ -116,7 +115,6 @@ local autoFireShootDelay = 0.1
 local nextFireTime = 0
 local currentTarget = nil
 local autoFireConnection = nil
-local autoAimConnection = nil
 local isFiring = false
 
 local knifeCloseEnabled = false
@@ -475,8 +473,9 @@ local function getaimpartposition(targetplayer)
 	return nil
 end
 
+local aimlockConnection = nil
+
 local function updateaimlock()
-	if not aimlockenabled then return end
 	local localHRP = GetLocalHRP()
 	if not localHRP then return end
 
@@ -493,6 +492,18 @@ local function updateaimlock()
 				Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, Camera.CFrame.Position + lookdirection)
 			end
 		end
+	end
+end
+
+local function startAimlockLoop()
+	if aimlockConnection then return end
+	aimlockConnection = RunService.RenderStepped:Connect(updateaimlock)
+end
+
+local function stopAimlockLoop()
+	if aimlockConnection then
+		aimlockConnection:Disconnect()
+		aimlockConnection = nil
 	end
 end
 
@@ -790,10 +801,8 @@ local function toggleAutoFire()
 		nextFireTime = 0
 		isFiring = false
 
-		autoAimConnection = RunService.RenderStepped:Connect(updateaimlock)
-
 		autoFireConnection = RunService.Heartbeat:Connect(function()
-			if not (autoFireEnabled and aimlockenabled) then return end
+			if not autoFireEnabled then return end
 			local localHRP = GetLocalHRP()
 			if not localHRP then 
 				if currentTarget then
@@ -841,7 +850,6 @@ local function toggleAutoFire()
 		end)
 	else
 		if autoFireConnection then autoFireConnection:Disconnect() autoFireConnection = nil end
-		if autoAimConnection then autoAimConnection:Disconnect() autoAimConnection = nil end
 		currentTarget = nil
 		isFiring = false
 		stopAim()
@@ -849,10 +857,10 @@ local function toggleAutoFire()
 end
 
 local function toggleAimlock()
-	if aimlockenabled and not autoFireEnabled then
-		autoAimConnection = RunService.RenderStepped:Connect(updateaimlock)
+	if aimlockenabled then
+		startAimlockLoop()
 	else
-		if autoAimConnection then autoAimConnection:Disconnect() autoAimConnection = nil end
+		stopAimlockLoop()
 	end
 end
 
@@ -863,7 +871,7 @@ end)
 
 local statusGroup = Tabs.Main:AddRightGroupbox("Status", "info")
 local healthLabel = statusGroup:AddLabel("Health: 0")
-local versionLabel = statusGroup:AddLabel("Version: Unknown")
+local versionLabel = statusGroup:AddLabel("Version: "..getgenv().unxshared.version)
 local fpsLabel = statusGroup:AddLabel("FPS: 0")
 local pingLabel = statusGroup:AddLabel("Ping: 0")
 
@@ -1002,11 +1010,18 @@ local aimlocktabbox = Tabs.Features:AddLeftTabbox()
 local aimlocktab = aimlocktabbox:AddTab("AimLock")
 local aimlockconfigtab = aimlocktabbox:AddTab("Configurations")
 
-aimlocktab:AddCheckbox("AimLock", { Text = "Activate Aimlock", Default = false, Callback = function(v) aimlockenabled = v toggleAimlock() if autoFireEnabled then toggleAutoFire() end end })
+aimlocktab:AddCheckbox("AimLock", { Text = "Activate Aimlock", Default = false, Callback = function(v) 
+	aimlockenabled = v 
+	toggleAimlock() 
+end })
+
 aimlocktab:AddDropdown("AimLockType", { Values = {"Nearest Player", "Nearest Mouse"}, Default = 1, Text = "Aimlock Type", Callback = function(v) aimlocktype = v end })
 aimlocktab:AddCheckbox("WallCheck", { Text = "Wall Check", Default = false, Callback = function(v) wallcheckenabled = v end })
 
-aimlocktab:AddToggle("AutoFire", { Text = "Auto-Fire (W.I.P)", Default = false, Callback = function(v) autoFireEnabled = v toggleAutoFire() end })
+aimlocktab:AddToggle("AutoFire", { Text = "Auto-Fire (W.I.P)", Default = false, Callback = function(v) 
+	autoFireEnabled = v 
+	toggleAutoFire() 
+end })
 
 aimlocktab:AddCheckbox("AimLockCertainPlayer", { Text = "Aimlock Certain Player", Default = false, Callback = function(v) aimlockcertainplayer = v end })
 aimlocktab:AddDropdown("AimLockPlayerSelect", { SpecialType = "Player", ExcludeLocalPlayer = true, Text = "Select Player", Callback = function(v) selectedplayer = v end })
