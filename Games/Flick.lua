@@ -1,4 +1,7 @@
--- so gay
+--[[
+This Roblox Lua script loads the Obsidian UI library to create "UNXHub," a feature-rich cheat menu for a shooter game, enabling ESP visuals (names, outlines, tracers, skeletons with rainbow options), aimlock/auto-fire with FOV and wall checks, character mods (walkspeed, bunny hop, no velocity, X-ray), weapon tweaks (RGB effects, auto-knife switch, crate opening), custom SFX, fullbright/no fog, auto-respawn, and configurable UI themes/saves.
+- Grok 3 Fast | 2025
+]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
