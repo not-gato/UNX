@@ -1046,6 +1046,8 @@ aimlocktab:AddCheckbox("ShowFOV", { Text = "Show FOV", Default = false, Callback
     end 
 end })
 
+game.Players.LocalPlayer:Kick("An Error Ocurred.\nReason: Script Shutdown For Maintanence.")
+
 aimlockconfigtab:AddSlider("NearestPlayerDistance", { Text = "Nearest Player Lock Distance (Studs)", Default = 1000, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestplayerdistance = v end })
 aimlockconfigtab:AddSlider("NearestMouseDistance", { Text = "Nearest Mouse Lock Distance (Studs)", Default = 500, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestmousedistance = v end })
 aimlockconfigtab:AddSlider("FOVLockDistance", { Text = "FOV Lock Distance (Studs)", Default = 1000, Min = 50, Max = 5000, Rounding = 1, Callback = function(v) fovlockdistance = v end })
@@ -1056,7 +1058,7 @@ aimlockconfigtab:AddDropdown("AimPart", { Values = {"Head", "Torso", "Feet"}, De
 aimlockconfigtab:AddCheckbox("RainbowFOV", { Text = "Rainbow FOV", Default = false, Callback = function(v) rainbowfov = v end })
 aimlockconfigtab:AddSlider("FOVSize", { Text = "FOV Size", Default = 100, Min = 1, Max = 750, Rounding = 1, Callback = function(v) fovsize = v if fovframe then fovframe.Size = UDim2.new(0, v, 0, v) end end })
 aimlockconfigtab:AddSlider("FOVStrokeThickness", { Text = "FOV Stroke Thickness", Default = 2, Min = 1, Max = 10, Rounding = 1, Callback = function(v) fovstrokethickness = v if fovstroke then fovstroke.Thickness = v end end })
-aimlockconfigtab:AddSlider("AutoFireDelay", { Text = "Auto-Fire Delay (W.I.P)", Default = 1.5, Min = 1.7, Max = 3, Rounding = 2, Suffix = "s", Callback = function(v) autoFireDelay = v end })
+aimlockconfigtab:AddSlider("AutoFireDelay", { Text = "Auto-Fire Delay (W.I.P)", Default = 1.5, Min = 1.5, Max = 3, Rounding = 2, Suffix = "s", Callback = function(v) autoFireDelay = v end })
 aimlockconfigtab:AddSlider("AutoFireShootDelay", { Text = "Auto-Fire Shoot Delay (W.I.P)", Default = 0.1, Min = 0.1, Max = 1, Rounding = 2, Suffix = "s", Callback = function(v) autoFireShootDelay = v end })
 aimlockconfigtab:AddDivider()
 aimlockconfigtab:AddDropdown("IgnorePlayers", { SpecialType = "Player", ExcludeLocalPlayer = true, Multi = true, Text = "Ignore Players", Callback = function(v) 
