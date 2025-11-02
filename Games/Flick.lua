@@ -1046,8 +1046,6 @@ aimlocktab:AddCheckbox("ShowFOV", { Text = "Show FOV", Default = false, Callback
     end 
 end })
 
-game.Players.LocalPlayer:Kick("An Error Ocurred.\nReason: Script Shutdown For Maintanence.")
-
 aimlockconfigtab:AddSlider("NearestPlayerDistance", { Text = "Nearest Player Lock Distance (Studs)", Default = 1000, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestplayerdistance = v end })
 aimlockconfigtab:AddSlider("NearestMouseDistance", { Text = "Nearest Mouse Lock Distance (Studs)", Default = 500, Min = 10, Max = 5000, Rounding = 1, Callback = function(v) nearestmousedistance = v end })
 aimlockconfigtab:AddSlider("FOVLockDistance", { Text = "FOV Lock Distance (Studs)", Default = 1000, Min = 50, Max = 5000, Rounding = 1, Callback = function(v) fovlockdistance = v end })
