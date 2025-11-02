@@ -1106,7 +1106,7 @@ menugroup:AddDropdown("DPIDropdown", { Values = { "50%", "75%", "100%", "125%", 
 menugroup:AddDivider()
 menugroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { NoUI = true, Text = "Menu keybind" })
 menugroup:AddButton("Unload", function() Library:Unload() end)
-
+menugroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
 menugroup:AddCheckbox("OptOutLog", {
 	Text = "Opt-Out Log",
 	Default = isfile("optout.unx"),
