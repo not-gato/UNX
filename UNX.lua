@@ -199,7 +199,7 @@ task.wait(0.1)
 y("Creating global variables...")
 task.wait(0.05)
 getgenv().unxshared = {
-	version = "2.2.0 (Mega Patch 2)",
+	version = "2.2.0 (Patch 3)",
 	gamename = ak:GetProductInfo(game.PlaceId).Name,
 	issupported = false,
 	playername = b.Name,
