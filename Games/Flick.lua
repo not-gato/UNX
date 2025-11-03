@@ -1,5 +1,5 @@
 --[[
-bug fixes wowwwww!
+blah blah blah bluh bluh bluh🔥
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
@@ -103,7 +103,8 @@ local rainbowfov = false
 local aimlockcertainplayer = false
 local selectedplayer = nil
 local ignoredplayers = {}
-local wallcheckenabled = false
+local prioritizedplayers = {}
+local wallcheckenabled = true
 local lerpalpha = 0.4
 local aimlockOffsetX = 0
 local aimlockOffsetY = 0
@@ -414,50 +415,63 @@ end
 local function getclosestplayer()
 	local localHRP = GetLocalHRP()
 	if not localHRP then return nil end
+	local mousePos = UserInputService:GetMouseLocation()
 
-	local playerlist = {}
-	for _, player in pairs(Players:GetPlayers()) do
-		if player ~= LocalPlayer and not ignoredplayers[player.Name] and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			if ignoreShielded and isShielded(player) then continue end
-			local distance = (localHRP.Position - player.Character.HumanoidRootPart.Position).Magnitude
-			if aimlocktype == "Nearest Player" and distance < nearestplayerdistance then
-				table.insert(playerlist, {player = player, distance = distance})
-			elseif aimlocktype == "Nearest Mouse" and distance < nearestmousedistance then
-				local screenpos, onscreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-				if onscreen then
-					local mousedistance = (Vector2.new(screenpos.X, screenpos.Y) - Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)).Magnitude
-					table.insert(playerlist, {player = player, distance = mousedistance})
-				end
+	local function getPriorityScore(player)
+		if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return math.huge end
+		if player == LocalPlayer or ignoredplayers[player.Name] or (ignoreShielded and isShielded(player)) then return math.huge end
+
+		local hrp = player.Character.HumanoidRootPart
+		local screen, onscreen = Camera:WorldToViewportPoint(hrp.Position)
+		if not onscreen then return math.huge end
+
+		if fovenabled then
+			local center = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+			local distFromCenter = (Vector2.new(screen.X, screen.Y) - center).Magnitude
+			if distFromCenter > fovsize/2 then return math.huge end
+			if (localHRP.Position - hrp.Position).Magnitude > fovlockdistance then return math.huge end
+		end
+
+		if wallcheckenabled then
+			local head = player.Character:FindFirstChild("Head")
+			if head then
+				local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+				local rayParams = RaycastParams.new()
+				rayParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+				rayParams.FilterType = Enum.RaycastFilterType.Exclude
+				local result = workspace:Raycast(origin, head.Position - origin, rayParams)
+				if result then return math.huge end
 			end
 		end
-	end
-	table.sort(playerlist, function(a, b) return a.distance < b.distance end)
-	for _, entry in ipairs(playerlist) do
-		local player = entry.player
-		local passedFOVCheck = true
-		local passedWallCheck = true
-		if fovenabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			local screenpos, onscreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-			if onscreen then
-				local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-				local distance = (Vector2.new(screenpos.X, screenpos.Y) - center).Magnitude
-				local worlddistance = (localHRP.Position - player.Character.HumanoidRootPart.Position).Magnitude
-				if distance > fovsize / 2 or worlddistance > fovlockdistance then passedFOVCheck = false end
-			else passedFOVCheck = false end
+
+		if aimlocktype == "Nearest Player" then
+			return (localHRP.Position - hrp.Position).Magnitude
+		else
+			return (Vector2.new(screen.X, screen.Y) - mousePos).Magnitude
 		end
-		if wallcheckenabled and player.Character and player.Character:FindFirstChild("Head") and localHRP then
-			local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
-			local direction = (player.Character.Head.Position - origin).Unit * (player.Character.Head.Position - origin).Magnitude
-			local raycastParams = RaycastParams.new()
-			raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
-			raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-			raycastParams.IgnoreWater = true
-			local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-			if raycastResult then passedWallCheck = false end
-		end
-		if passedFOVCheck and passedWallCheck then return player end
 	end
-	return nil
+
+	local bestPlayer, bestScore = nil, math.huge
+	for _, player in ipairs(prioritizedplayers) do
+		local score = getPriorityScore(player)
+		if score < bestScore then
+			bestScore = score
+			bestPlayer = player
+		end
+	end
+
+	if bestPlayer then return bestPlayer end
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if table.find(prioritizedplayers, player) then continue end
+		local score = getPriorityScore(player)
+		if score < bestScore then
+			bestScore = score
+			bestPlayer = player
+		end
+	end
+
+	return bestPlayer
 end
 
 local function getaimpartposition(targetplayer)
@@ -877,6 +891,7 @@ local pingLabel = statusGroup:AddLabel("Ping: 0")
 
 local characterGroup = Tabs.Main:AddLeftGroupbox("Character", "user")
 characterGroup:AddSlider("WalkSpeed", { Text = "WalkSpeed", Default = 16, Min = 16, Max = 26, Rounding = 1, Callback = function(v) currentwalkspeed = v end })
+characterGroup:AddLabel("<font color='rgb(255,0,0)'><u>CAUTION:</u> Using too high walkspeeds <b>WILL</b> get you detected and maybe <b>TEMPORARY BAN</b></font>", true)
 characterGroup:AddCheckbox("NoVelocity", { Text = "No Velocity", Default = false, Callback = function(v) noVelocityEnabled = v toggleNoVelocity() end })
 characterGroup:AddCheckbox("BunnyHop", { Text = "Bunny Hop", Default = false, Callback = function(v) bunnyHopEnabled = v toggleBunnyHop() end })
 characterGroup:AddSlider("BunnyHopDelay", { Text = "Bunny Hop Delay", Default = 1, Min = 0, Max = 5, Rounding = 2, Suffix = "s", Callback = function(v) bunnyHopDelay = v end })
@@ -1016,12 +1031,12 @@ aimlocktab:AddCheckbox("AimLock", { Text = "Activate Aimlock", Default = false, 
 end })
 
 aimlocktab:AddDropdown("AimLockType", { Values = {"Nearest Player", "Nearest Mouse"}, Default = 1, Text = "Aimlock Type", Callback = function(v) aimlocktype = v end })
-aimlocktab:AddCheckbox("WallCheck", { Text = "Wall Check", Default = false, Callback = function(v) wallcheckenabled = v end })
 
 aimlocktab:AddToggle("AutoFire", { Text = "Auto-Fire (W.I.P)", Default = false, Callback = function(v) 
 	autoFireEnabled = v 
 	toggleAutoFire() 
 end })
+aimlocktab:AddLabel("<font color='rgb(255,0,0)'><u>CAUTION:</u> This feature will maybe get u <b>DETECTED</b> or even <b>TEMPORARY BANNED</b>, as this feature is still W.I.P (Work in progress)!</font>", true)
 
 aimlocktab:AddCheckbox("AimLockCertainPlayer", { Text = "Aimlock Certain Player", Default = false, Callback = function(v) aimlockcertainplayer = v end })
 aimlocktab:AddDropdown("AimLockPlayerSelect", { SpecialType = "Player", ExcludeLocalPlayer = true, Text = "Select Player", Callback = function(v) selectedplayer = v end })
@@ -1074,12 +1089,33 @@ aimlockconfigtab:AddSlider("FOVStrokeThickness", { Text = "FOV Stroke Thickness"
 aimlockconfigtab:AddSlider("AutoFireDelay", { Text = "Auto-Fire Delay (W.I.P)", Default = 1.5, Min = 1.5, Max = 3, Rounding = 2, Suffix = "s", Callback = function(v) autoFireDelay = v end })
 aimlockconfigtab:AddSlider("AutoFireShootDelay", { Text = "Auto-Fire Shoot Delay (W.I.P)", Default = 0.1, Min = 0.1, Max = 1, Rounding = 2, Suffix = "s", Callback = function(v) autoFireShootDelay = v end })
 aimlockconfigtab:AddDivider()
-aimlockconfigtab:AddDropdown("IgnorePlayers", { SpecialType = "Player", ExcludeLocalPlayer = true, Multi = true, Text = "Ignore Players", Callback = function(v) 
-    ignoredplayers = {} 
-    for p, s in pairs(v) do 
-        if s then ignoredplayers[p.Name] = true end 
+
+aimlockconfigtab:AddDropdown("IgnorePlayers", { 
+    SpecialType = "Player", 
+    ExcludeLocalPlayer = true, 
+    Multi = true, 
+    Text = "Ignore Players", 
+    Callback = function(v) 
+        ignoredplayers = {} 
+        for p, s in pairs(v) do 
+            if s then ignoredplayers[p.Name] = true end 
+        end 
     end 
-end })
+})
+
+aimlockconfigtab:AddDropdown("PrioritizePlayers", { 
+    SpecialType = "Player", 
+    ExcludeLocalPlayer = true, 
+    Multi = true, 
+    Text = "Prioritize Players", 
+    Tooltip = "Locks in mouse-distance order → then others", 
+    Callback = function(v) 
+        prioritizedplayers = {} 
+        for p, s in pairs(v) do 
+            if s then table.insert(prioritizedplayers, p) end 
+        end 
+    end 
+})
 
 aimlockconfigtab:AddDivider()
 aimlockconfigtab:AddLabel("Advanced Configurations")
