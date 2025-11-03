@@ -1,4 +1,3 @@
-setclipboard("Fun Fact: if you showcase unxhub and send proof of video & account ownership on our discord server: https://discord.gg/zpaMS8qUfB, u will get a content creator role!")
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
@@ -276,6 +275,16 @@ am("Creating global variables...")
 task.wait(0.05)
 getgenv().unxshared={version="2.2.0 (Patch 3)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="https://discord.gg/zpaMS8qUfB"}
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
+
+if not isfile("UsedOneTime.unx") then
+    writefile("UsedOneTime.unx", "")
+else
+    if isfile("AlreadyRated.unx") then return end
+    loadstring(game:HttpGet(
+        "https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Rating.lua"
+    ))()
+end
+
 am("Player: "..d.Name.." (ID: "..d.UserId..")")
 task.wait(0.05)
 am("Game: "..getgenv().unxshared.gamename)
