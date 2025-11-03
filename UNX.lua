@@ -1,5 +1,14 @@
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
+if not isfile("UsedOneTime.unx") then
+	writefile("UsedOneTime.unx","1")
+elseif not isfile("AlreadyRated.unx") then
+	loadstring(game:HttpGet(
+		"https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Rating.lua"
+	))()
+	writefile("AlreadyRated.unx","1")
+end
+
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 	warn("UNXHub is already loaded. Skipping initialization.")
 	return
