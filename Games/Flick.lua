@@ -1,6 +1,4 @@
---[[
-blah blah blah bluh bluh bluh🔥
-]]
+-- no comment for this time
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -151,6 +149,8 @@ local autoApplyDelay = 1
 local autoApplyConnection = nil
 
 getgenv().RGB_ForceNeon = true
+
+local inLobby = false
 
 local function GetLocalHRP()
 	if not LocalPlayer.Character then return nil end
@@ -412,6 +412,19 @@ local function isShielded(player)
 	return shieldedPlayers[player] == true
 end
 
+local function checkLobbyStatus()
+	local team = LocalPlayer.Team
+	if team then
+		inLobby = (team.Name == "Lobby")
+	else
+		inLobby = false
+	end
+end
+
+LocalPlayer:GetPropertyChangedSignal("Team"):Connect(checkLobbyStatus)
+LocalPlayer:GetPropertyChangedSignal("TeamColor"):Connect(checkLobbyStatus)
+checkLobbyStatus()
+
 local function getclosestplayer()
 	local localHRP = GetLocalHRP()
 	if not localHRP then return nil end
@@ -492,6 +505,9 @@ local aimlockConnection = nil
 local function updateaimlock()
 	local localHRP = GetLocalHRP()
 	if not localHRP then return end
+	
+	checkLobbyStatus()
+	if inLobby then return end
 
 	local targetplayer = aimlockcertainplayer and selectedplayer or getclosestplayer()
 	if targetplayer then
@@ -817,6 +833,16 @@ local function toggleAutoFire()
 
 		autoFireConnection = RunService.Heartbeat:Connect(function()
 			if not autoFireEnabled then return end
+			
+			checkLobbyStatus()
+			if inLobby then 
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return 
+			end
+			
 			local localHRP = GetLocalHRP()
 			if not localHRP then 
 				if currentTarget then
@@ -1107,7 +1133,7 @@ aimlockconfigtab:AddDropdown("PrioritizePlayers", {
     ExcludeLocalPlayer = true, 
     Multi = true, 
     Text = "Prioritize Players", 
-    Tooltip = "Locks in mouse-distance order → then others", 
+    Tooltip = "Locks in mouse-distance order then others", 
     Callback = function(v) 
         prioritizedplayers = {} 
         for p, s in pairs(v) do 
