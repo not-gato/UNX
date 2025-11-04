@@ -282,7 +282,7 @@ am("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
 task.wait(0.1)
 am("Creating global variables...")
 task.wait(0.05)
-getgenv().unxshared={version="2.2.1",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="https://discord.gg/zpaMS8qUfB"}
+getgenv().unxshared={version="2.2.1",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="when the 🙏"}
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 
 am("Player: "..d.Name.." (ID: "..d.UserId..")")
