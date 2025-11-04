@@ -1,4 +1,3 @@
-setclipboard("https://www.roblox.com/share?code=f368f57c39354c45846ab6c4d140931a&type=Server")
 
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
