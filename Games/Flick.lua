@@ -1,5 +1,3 @@
--- no comment for this time
-
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
@@ -148,6 +146,12 @@ local autoApplySfx = false
 local autoApplyDelay = 1
 local autoApplyConnection = nil
 
+local rgbAsyncEnabled = false
+local rgbSyncHue = 0
+local rgbSyncLastUpdate = 0
+local rgbAsyncSpeed = 10
+local rgbAsyncMode = "Backwards"
+
 getgenv().RGB_ForceNeon = true
 
 local inLobby = false
@@ -166,6 +170,18 @@ local function getrainbowcolor()
 		lastupdate = currenttime
 	end
 	return Color3.fromHSV(rainbowhue, 1, 1)
+end
+
+local function getSyncRainbowColor()
+	local currenttime = tick()
+	local speedmultiplier = 11 - rgbAsyncSpeed
+	local increment = 0.001 * speedmultiplier
+	if rgbAsyncMode == "Backwards" then increment = -increment end
+	if currenttime - rgbSyncLastUpdate >= 0.1 then
+		rgbSyncHue = (rgbSyncHue + increment) % 1
+		rgbSyncLastUpdate = currenttime
+	end
+	return Color3.fromHSV(rgbSyncHue, 1, 1)
 end
 
 local function getPlayerWeapon(player)
@@ -200,7 +216,7 @@ local function updateesp()
 			local hrp = player.Character.HumanoidRootPart
 			local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
 			local isShielded = shieldedPlayers[player]
-			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowesp and getrainbowcolor() or espconfig.espcolor)
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowesp and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.espcolor)
 			esp.Name.Color = color
 			esp.Name.Size = espconfig.espsize
 			if onscreen then
@@ -226,8 +242,8 @@ local function applyhighlighttocharacter(player, character)
 	local highlighter = Instance.new("Highlight")
 	highlighter.FillTransparency = espconfig.outlinefilltransparency
 	highlighter.OutlineTransparency = espconfig.outlinetransparency
-	highlighter.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-	highlighter.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+	highlighter.OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinecolor
+	highlighter.FillColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
 	highlighter.Adornee = character
 	highlighter.Parent = character
 	activehighlights[userid] = highlighter
@@ -245,7 +261,7 @@ local function setupplayerhighlight(player)
 			table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
 				local highlight = activehighlights[userid]
 				if highlight then
-					highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
+					highlight.OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
 				end
 			end))
 			table.insert(playerconnections[userid], humanoid.Died:Connect(function() removehighlight(player) end))
@@ -284,7 +300,7 @@ local function updatetracers()
 			local root = player.Character.HumanoidRootPart
 			local screenpos, onscreen = Camera:WorldToViewportPoint(root.Position)
 			local isShielded = shieldedPlayers[player]
-			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowtracers and getrainbowcolor() or espconfig.tracercolor)
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowtracers and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.tracercolor)
 			if onscreen then
 				line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
 				line.To = Vector2.new(screenpos.X, screenpos.Y)
@@ -341,7 +357,7 @@ local function updateskeleton()
 				RightLeg = char:FindFirstChild("RightUpperLeg") or char:FindFirstChild("Right Leg")
 			}
 			local isShielded = shieldedPlayers[player]
-			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowskeleton and getrainbowcolor() or espconfig.skeletoncolor)
+			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowskeleton and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.skeletoncolor)
 			local function getscreen(part) if part then local pos, visible = Camera:WorldToViewportPoint(part.Position) if visible then return Vector2.new(pos.X, pos.Y) end end end
 			local head = getscreen(parts.Head)
 			local torso = getscreen(parts.Torso)
@@ -401,8 +417,8 @@ local function applyShieldEffect(player)
 		if shieldedPlayers[player] then
 			shieldedPlayers[player] = nil
 			if activehighlights[player.UserId] then
-				activehighlights[player.UserId].OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-				activehighlights[player.UserId].FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+				activehighlights[player.UserId].OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinecolor
+				activehighlights[player.UserId].FillColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
 			end
 		end
 	end)
@@ -540,7 +556,7 @@ end
 local function updatefovcircle()
 	if fovframe and fovstroke then
 		if showfov then
-			fovstroke.Color = rainbowfov and Color3.fromHSV(tick() % 5 / 5, 1, 1) or fovcolor
+			fovstroke.Color = rainbowfov and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or fovcolor
 			fovframe.Visible = true
 		else
 			fovframe.Visible = false
@@ -637,6 +653,9 @@ local function toggleRGBGunKnife()
 		if localTool then lastGunTool = localTool end
 		rgbConnection = RunService.Heartbeat:Connect(function()
 			rgbHue = (rgbHue + (rgbSpeed / 5000)) % 1
+			if rgbAsyncEnabled then
+				rgbHue = rgbSyncHue
+			end
 			if LocalPlayer.Character then
 				for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
 					if tool:IsA("Tool") then
@@ -754,6 +773,7 @@ local ProjectileRender = nil
 local ProjectileFinished = nil
 
 local function waitForRemote(path, name)
+	if not path or not name then return nil end
 	while not path:FindFirstChild(name) do
 		task.wait(0.1)
 	end
@@ -761,23 +781,43 @@ local function waitForRemote(path, name)
 end
 
 task.spawn(function()
-	local signalEvents = ReplicatedStorage:WaitForChild("SignalManager"):WaitForChild("SignalEvents")
+	local signalEvents = ReplicatedStorage:WaitForChild("SignalManager", 10)
+	if not signalEvents then return end
+	signalEvents = signalEvents:WaitForChild("SignalEvents", 10)
+	if not signalEvents then return end
+
 	AimWeapon = waitForRemote(signalEvents, "AimWeapon")
 	AimStateChanged = waitForRemote(signalEvents, "AimStateChanged")
 	FireWeaponMobile = waitForRemote(signalEvents, "FireWeaponMoblie")
 	
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	CommandRemote = waitForRemote(remotes, "Command")
-	RollCrate = waitForRemote(remotes, "RollCrate")
+	local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+	if remotes then
+		CommandRemote = waitForRemote(remotes, "Command")
+		RollCrate = waitForRemote(remotes, "RollCrate")
+	end
 	
-	Sound_Request = waitForRemote(ReplicatedStorage:WaitForChild("SoundModule"), "Sound_RequestFromServer_C2S")
+	local soundModule = ReplicatedStorage:FindFirstChild("SoundModule")
+	if soundModule then
+		Sound_Request = waitForRemote(soundModule, "Sound_RequestFromServer_C2S")
+	end
 	
-	CheckFire = waitForRemote(LocalPlayer:WaitForChild("ClientRemotes"), "CheckFire")
-	CheckShot = waitForRemote(LocalPlayer.ClientRemotes, "CheckShot")
+	local clientRemotes = LocalPlayer:FindFirstChild("ClientRemotes")
+	if clientRemotes then
+		CheckFire = waitForRemote(clientRemotes, "CheckFire")
+		CheckShot = waitForRemote(clientRemotes, "CheckShot")
+	end
 	
-	local gunModules = ReplicatedStorage:WaitForChild("ModuleScripts"):WaitForChild("GunModules"):WaitForChild("Remote")
-	ProjectileRender = waitForRemote(gunModules, "ProjectileRender")
-	ProjectileFinished = waitForRemote(gunModules, "ProjectileFinished")
+	local gunModules = ReplicatedStorage:FindFirstChild("ModuleScripts")
+	if gunModules then
+		gunModules = gunModules:FindFirstChild("GunModules")
+		if gunModules then
+			gunModules = gunModules:FindFirstChild("Remote")
+			if gunModules then
+				ProjectileRender = waitForRemote(gunModules, "ProjectileRender")
+				ProjectileFinished = waitForRemote(gunModules, "ProjectileFinished")
+			end
+		end
+	end
 	
 	SwapWeapon = waitForRemote(signalEvents, "SwapWeapon")
 end)
@@ -872,6 +912,19 @@ local function toggleAutoFire()
 
 			local hum = targetplayer.Character:FindFirstChild("Humanoid")
 			if not hum or hum.Health <= 0 then
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
+				end
+				return
+			end
+
+			local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+			local rayParams = RaycastParams.new()
+			rayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetplayer.Character}
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			local result = workspace:Raycast(origin, head.Position - origin, rayParams)
+			if result then
 				if currentTarget then
 					stopAim()
 					currentTarget = nil
@@ -1083,7 +1136,7 @@ aimlocktab:AddCheckbox("ShowFOV", { Text = "Show FOV", Default = false, Callback
             fovframe.Name = "Circle" 
             fovframe.AnchorPoint = Vector2.new(0.5, 0.5) 
             fovframe.Position = UDim2.new(0.5, 0, 0.5, 0) 
-            fovframe.BackgroundTransparency = 1 
+            fovframe.BackgroundTransparency = 1
             fovframe.BorderSizePixel = 0 
             fovframe.Parent = fovgui 
             local corner = Instance.new("UICorner") 
@@ -1113,6 +1166,8 @@ aimlockconfigtab:AddSlider("FOVSize", { Text = "FOV Size", Default = 100, Min = 
 aimlockconfigtab:AddSlider("FOVStrokeThickness", { Text = "FOV Stroke Thickness", Default = 2, Min = 1, Max = 10, Rounding = 1, Callback = function(v) fovstrokethickness = v if fovstroke then fovstroke.Thickness = v end end })
 aimlockconfigtab:AddSlider("AutoFireDelay", { Text = "Auto-Fire Delay (W.I.P)", Default = 1.5, Min = 1.5, Max = 3, Rounding = 2, Suffix = "s", Callback = function(v) autoFireDelay = v end })
 aimlockconfigtab:AddSlider("AutoFireShootDelay", { Text = "Auto-Fire Shoot Delay (W.I.P)", Default = 0.1, Min = 0.1, Max = 1, Rounding = 2, Suffix = "s", Callback = function(v) autoFireShootDelay = v end })
+aimlockconfigtab:AddDivider()
+aimlockconfigtab:AddCheckbox("WallCheck", { Text = "Wall Check", Default = true, Callback = function(v) wallcheckenabled = v end })
 aimlockconfigtab:AddDivider()
 
 aimlockconfigtab:AddDropdown("IgnorePlayers", { 
@@ -1158,6 +1213,10 @@ featuresGroup:AddButton("Mass Open Gun Crate", openGunCrates)
 featuresGroup:AddSlider("GunCrateCount", { Text = "Gun Crate Count To Open", Default = 0, Min = 0, Max = 15, Rounding = 1, Callback = function(v) gunCrateCount = math.floor(v) end })
 
 local funGroup = Tabs.Features:AddRightGroupbox("Fun", "party-popper")
+funGroup:AddToggle("RGBAsync", { Text = "RGB ASync", Default = false, Callback = function(v) rgbAsyncEnabled = v end })
+funGroup:AddSlider("RGBAsyncSpeed", { Text = "RGB ASync Speed", Default = 10, Min = 1, Max = 50, Rounding = 1, Callback = function(v) rgbAsyncSpeed = v end })
+funGroup:AddDropdown("RGBAsyncMode", { Values = {"Forward", "Backwards"}, Default = 2, Text = "RGB ASync Spectrum Mode", Callback = function(v) rgbAsyncMode = v end })
+funGroup:AddDivider()
 funGroup:AddToggle("RGBGunKnife", { Text = "RGB Gun/Knife", Default = false, Callback = function(v) rgbGunKnifeEnabled = v toggleRGBGunKnife() end })
 funGroup:AddSlider("RGBSpeed", { Text = "RGB Speed", Default = 10, Min = 1, Max = 50, Rounding = 0, Callback = function(v) rgbSpeed = v end })
 funGroup:AddSlider("RGBReapplySpeed", { Text = "RGB Re-Apply Speed", Default = 1, Min = 0, Max = 5, Rounding = 1, Suffix = "s", Callback = function(v) rgbReapplySpeed = v end })
@@ -1272,8 +1331,8 @@ RunService.RenderStepped:Connect(function(dt)
 	if outlineenabled then
 		for _, h in pairs(activehighlights) do
 			if h then
-				h.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-				h.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
+				h.OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinecolor
+				h.FillColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
 			end
 		end
 	end
