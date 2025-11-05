@@ -282,7 +282,7 @@ am("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
 task.wait(0.1)
 am("Creating global variables...")
 task.wait(0.05)
-getgenv().unxshared={version="2.2.1",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="when the 🙏"}
+getgenv().unxshared={version="2.2.0 (Patch 4)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="https://discord.gg/zpaMS8qUfB"}
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 
 am("Player: "..d.Name.." (ID: "..d.UserId..")")
@@ -303,7 +303,11 @@ if bd[bc]then
 	am("Fetching game-specific script...")
 	task.wait(0.01)
 	be,bf=pcall(function()
-		loadstring(game:HttpGet(bd[bc]))()
+		local scriptUrl=bd[bc]
+		local src=game:HttpGet(scriptUrl)
+		local func,err=loadstring(src,scriptUrl)
+		if not func then error(err) end
+		func()
 	end)
 else
 	getgenv().unxshared.issupported=false
@@ -312,7 +316,11 @@ else
 	am("Fetching universal script...")
 	task.wait(0.1)
 	be,bf=pcall(function()
-		loadstring(game:HttpGet("https://apigetunx.vercel.app/Games/Universal.lua"))()
+		local scriptUrl="https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Games/Universal.lua"
+		local src=game:HttpGet(scriptUrl)
+		local func,err=loadstring(src,scriptUrl)
+		if not func then error(err) end
+		func()
 	end)
 end
 if be then
@@ -343,23 +351,21 @@ if be then
 	f:Destroy()
 else
 	getgenv().unxshared.isloaded=false
-	local bj="Error: "..tostring(bf)
-	am("Script failed to load")
-	task.wait(0.2)
-	am(bj)
-	task.wait(0.2)
-	am("<====> PLAYER INFORMATION <====>")
-	am("Player Name: "..d.Name)
-	am("Display Name: "..d.DisplayName)
-	am("User ID: "..tostring(d.UserId))
-	am("Current Time: "..os.date("%Y-%m-%d %H:%M:%S"))
-	local bk=math.floor(1/ba.RenderStepped:Wait())
-	am("FPS: "..tostring(bk))
-	local bl=math.floor(bb.Network.ServerStatsItem["Data Ping"]:GetValue())
-	am("Ping: "..tostring(bl).."ms | Server: Hidden For Privacy Purposes.")
-	task.wait(0.2)
-	am("UI will remain open for debugging")
-	am("Please Click 'Copy' Button And Report This To The Owner.")
-	warn("UNXHub Loader Error:",bf)
-	pcall(setclipboard,tostring(bf))
+	local errorMsg=tostring(bf):gsub("`","")
+	local kickTitle="UNXHub"
+	local kickBody=
+		"<font color='rgb(255,100,100)'>An error occurred and UNXHub must close.</font>\n\n"..
+		"<font color='rgb(220,220,220)'>Error: </font><font color='rgb(255,150,150)'>"..errorMsg.."</font>\n\n"..
+		"<font color='rgb(100,200,255)'>Please report this issue on our Discord server:</font>\n"..
+		"<font color='rgb(0,170,255)'>https://discord.gg/zpaMS8qUfB</font>"
+	local success,cKickModule=pcall(function()
+		return loadstring(game:HttpGet("https://api-gatostuff.vercel.app/raw/scripts/cKick.lua"))()
+	end)
+	if success and cKickModule and cKickModule.cKick then
+		pcall(cKickModule.cKick,kickTitle,kickBody)
+	else
+		warn("UNXHub Loader Error (cKick failed):",bf)
+		if f and f.Parent then f:Destroy() end
+	end
+	task.wait(1)
 end
