@@ -1,3 +1,13 @@
+--[[
+local funny = true
+
+if funny = true then
+    print("funny af")
+else
+    print("kys")
+end
+]]
+
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
@@ -139,6 +149,7 @@ local rgbHue = 0
 local rgbConnection = nil
 local rgbReapplyConnection = nil
 local lastGunTool = nil
+local rgbType = "Material"
 
 local hitSfxId = ""
 local critSfxId = ""
@@ -465,11 +476,16 @@ local function getclosestplayer()
 			local head = player.Character:FindFirstChild("Head")
 			if head then
 				local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+				local direction = head.Position - origin
 				local rayParams = RaycastParams.new()
-				rayParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+				rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
 				rayParams.FilterType = Enum.RaycastFilterType.Exclude
-				local result = workspace:Raycast(origin, head.Position - origin, rayParams)
-				if result then return math.huge end
+				local result = workspace:Raycast(origin, direction, rayParams)
+				if result then
+					if not result.Instance:IsDescendantOf(player.Character) then
+						return math.huge
+					end
+				end
 			end
 		end
 
@@ -483,7 +499,7 @@ local function getclosestplayer()
 	local bestPlayer, bestScore = nil, math.huge
 	for _, player in ipairs(prioritizedplayers) do
 		local score = getPriorityScore(player)
-		if score < bestScore then
+		if score and score < bestScore then
 			bestScore = score
 			bestPlayer = player
 		end
@@ -494,7 +510,7 @@ local function getclosestplayer()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if table.find(prioritizedplayers, player) then continue end
 		local score = getPriorityScore(player)
-		if score < bestScore then
+		if score and score < bestScore then
 			bestScore = score
 			bestPlayer = player
 		end
@@ -647,6 +663,18 @@ local function applyRGBToGun(toolModel, hue)
 	end
 end
 
+local function applyHighlightToTool(tool, hue)
+	if not tool or not rgbGunKnifeEnabled or rgbType ~= "Highlight" then return end
+	local highlight = tool:FindFirstChild("RGBHighlight") or Instance.new("Highlight")
+	highlight.Name = "RGBHighlight"
+	highlight.FillTransparency = 0.5
+	highlight.OutlineTransparency = 0
+	highlight.FillColor = Color3.fromHSV(hue, 1, 1)
+	highlight.OutlineColor = Color3.fromHSV(hue, 1, 1)
+	highlight.Adornee = tool
+	highlight.Parent = tool
+end
+
 local function toggleRGBGunKnife()
 	if rgbGunKnifeEnabled then
 		local localTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Tool")
@@ -659,10 +687,14 @@ local function toggleRGBGunKnife()
 			if LocalPlayer.Character then
 				for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
 					if tool:IsA("Tool") then
-						for _, model in ipairs(tool:GetChildren()) do
-							if model:IsA("Model") then
-								applyRGBToGun(model, rgbHue)
+						if rgbType == "Material" then
+							for _, model in ipairs(tool:GetChildren()) do
+								if model:IsA("Model") then
+									applyRGBToGun(model, rgbHue)
+								end
 							end
+						elseif rgbType == "Highlight" then
+							applyHighlightToTool(tool, rgbHue)
 						end
 					end
 				end
@@ -671,10 +703,14 @@ local function toggleRGBGunKnife()
 		rgbReapplyConnection = RunService.Heartbeat:Connect(function()
 			task.wait(rgbReapplySpeed)
 			if lastGunTool and lastGunTool.Parent then
-				for _, model in ipairs(lastGunTool:GetChildren()) do
-					if model:IsA("Model") then
-						applyRGBToGun(model, rgbHue)
+				if rgbType == "Material" then
+					for _, model in ipairs(lastGunTool:GetChildren()) do
+						if model:IsA("Model") then
+							applyRGBToGun(model, rgbHue)
+						end
 					end
+				elseif rgbType == "Highlight" then
+					applyHighlightToTool(lastGunTool, rgbHue)
 				end
 			end
 		end)
@@ -688,6 +724,8 @@ local function toggleRGBGunKnife()
 					if light then light:Destroy() end
 				end
 			end
+			local highlight = lastGunTool:FindFirstChild("RGBHighlight")
+			if highlight then highlight:Destroy() end
 		end
 	end
 end
@@ -919,17 +957,20 @@ local function toggleAutoFire()
 				return
 			end
 
-			local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
-			local rayParams = RaycastParams.new()
-			rayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetplayer.Character}
-			rayParams.FilterType = Enum.RaycastFilterType.Exclude
-			local result = workspace:Raycast(origin, head.Position - origin, rayParams)
-			if result then
-				if currentTarget then
-					stopAim()
-					currentTarget = nil
+			if wallcheckenabled then
+				local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+				local direction = head.Position - origin
+				local rayParams = RaycastParams.new()
+				rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+				rayParams.FilterType = Enum.RaycastFilterType.Exclude
+				local result = workspace:Raycast(origin, direction, rayParams)
+				if result and not result.Instance:IsDescendantOf(targetplayer.Character) then
+					if currentTarget then
+						stopAim()
+						currentTarget = nil
+					end
+					return
 				end
-				return
 			end
 
 			if targetplayer ~= currentTarget then
@@ -1073,7 +1114,7 @@ configtab:AddCheckbox("RainbowSkeleton", { Text = "Rainbow Skeleton ESP", Defaul
 configtab:AddSlider("ESPSize", { Text = "ESP Size", Default = 16, Min = 16, Max = 48, Rounding = 1, Callback = function(v) espconfig.espsize = v end })
 configtab:AddSlider("TracerSize", { Text = "Tracer Size", Default = 20, Min = 5, Max = 20, Rounding = 1, Callback = function(v) espconfig.tracersize = v * 0.1 end })
 configtab:AddSlider("OutlineTransparency", { Text = "Outline Transparency", Default = 0, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinetransparency = v / 100 end })
-configtab:AddSlider("OutlineFillTransparency", { Text = "Outline Fill Transparency", Default = 100, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinefilltransparency = v / 100 end })
+configtab:AddSlider("OutlineFillTransparency", { Text = "Outline Fill Transparency", Default = 50, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinefilltransparency = v / 100 end })
 configtab:AddSlider("RainbowSpeed", { Text = "Rainbow Speed", Default = 5, Min = 1, Max = 10, Rounding = 1, Callback = function(v) espconfig.rainbowspeed = v end })
 
 local gamegroup = Tabs.Visuals:AddRightGroupbox("Game", "gamepad-2")
@@ -1220,6 +1261,7 @@ funGroup:AddDivider()
 funGroup:AddToggle("RGBGunKnife", { Text = "RGB Gun/Knife", Default = false, Callback = function(v) rgbGunKnifeEnabled = v toggleRGBGunKnife() end })
 funGroup:AddSlider("RGBSpeed", { Text = "RGB Speed", Default = 10, Min = 1, Max = 50, Rounding = 0, Callback = function(v) rgbSpeed = v end })
 funGroup:AddSlider("RGBReapplySpeed", { Text = "RGB Re-Apply Speed", Default = 1, Min = 0, Max = 5, Rounding = 1, Suffix = "s", Callback = function(v) rgbReapplySpeed = v end })
+funGroup:AddDropdown("RGBType", { Values = {"Material", "Highlight"}, Default = 1, Text = "RGB Type", Callback = function(v) rgbType = v end })
 funGroup:AddToggle("RGBForceNeon", { Text = "Change Material To Neon", Default = true, Callback = function(v) getgenv().RGB_ForceNeon = v end })
 funGroup:AddDivider()
 funGroup:AddInput("HitSFX", { Default = "", Text = "Hit SFX", Placeholder = "rbxassetid://...", Callback = function(v) hitSfxId = v:gsub("rbxassetid://", "") end })
