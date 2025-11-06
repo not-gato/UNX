@@ -1,17 +1,17 @@
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if not isfile("UsedOneTime.unx") then
-	writefile("UsedOneTime.unx","1")
+writefile("UsedOneTime.unx","1")
 elseif not isfile("AlreadyRated.unx") then
-	loadstring(game:HttpGet(
-		"https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Rating.lua"
-	))()
-	writefile("AlreadyRated.unx","1")
+loadstring(game:HttpGet(
+"https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Rating.lua"
+))()
+writefile("AlreadyRated.unx","1")
 end
 
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
-	warn("UNXHub is already loaded. Skipping initialization.")
-	return
+warn("UNXHub is already loaded. Skipping initialization.")
+return
 end
 
 local a=game:GetService("TweenService")
@@ -77,19 +77,19 @@ o.Padding=UDim.new(0,6)
 o.SortOrder=Enum.SortOrder.LayoutOrder
 o.Parent=n
 local function p(q,r)
-	local s=Instance.new("TextButton")
-	s.Size=UDim2.new(0,12,0,12)
-	s.BackgroundColor3=q
-	s.Text=""
-	s.AutoButtonColor=false
-	s.BorderSizePixel=0
-	s.ZIndex=5
-	s.LayoutOrder=r
-	s.Parent=n
-	local t=Instance.new("UICorner")
-	t.CornerRadius=UDim.new(1,0)
-	t.Parent=s
-	return s
+local s=Instance.new("TextButton")
+s.Size=UDim2.new(0,12,0,12)
+s.BackgroundColor3=q
+s.Text=""
+s.AutoButtonColor=false
+s.BorderSizePixel=0
+s.ZIndex=5
+s.LayoutOrder=r
+s.Parent=n
+local t=Instance.new("UICorner")
+t.CornerRadius=UDim.new(1,0)
+t.Parent=s
+return s
 end
 local u=p(e.Traffic.Red,1)
 local v=p(e.Traffic.Yellow,2)
@@ -176,101 +176,101 @@ ai.ZIndex=4
 local aj=Instance.new("UICorner",ai)
 aj.CornerRadius=UDim.new(1,0)
 task.spawn(function()
-	local ak=0
-	while ai and ai.Parent do
-		ak=(ak+0.002)%1
-		ai.BackgroundColor3=Color3.fromHSV(ak,1,1)
-		task.wait(0.05)
-	end
+local ak=0
+while ai and ai.Parent do
+ak=(ak+0.002)%1
+ai.BackgroundColor3=Color3.fromHSV(ak,1,1)
+task.wait(0.05)
+end
 end)
 task.spawn(function()
-	while ai and ai.Parent do
-		a:Create(ai,TweenInfo.new(2.4,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Position=UDim2.new(0.75,0,0,0)}):Play()
-		task.wait(2.4)
-		a:Create(ai,TweenInfo.new(2.4,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Position=UDim2.new(0,0,0,0)}):Play()
-		task.wait(2.4)
-	end
+while ai and ai.Parent do
+a:Create(ai,TweenInfo.new(2.4,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Position=UDim2.new(0.75,0,0,0)}):Play()
+task.wait(2.4)
+a:Create(ai,TweenInfo.new(2.4,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Position=UDim2.new(0,0,0,0)}):Play()
+task.wait(2.4)
+end
 end)
 local al={}
 local function am(an)
-	table.insert(al,an)
-	local ao=Instance.new("TextLabel")
-	ao.Size=UDim2.new(1,-10,0,0)
-	ao.BackgroundTransparency=1
-	ao.Text="> "..an
-	ao.TextColor3=e.TextDim
-	ao.TextSize=12
-	ao.Font=Enum.Font.Code
-	ao.TextXAlignment=Enum.TextXAlignment.Left
-	ao.TextYAlignment=Enum.TextYAlignment.Top
-	ao.TextWrapped=true
-	ao.ZIndex=5
-	ao.Parent=ac
-	task.wait()
-	ao.Size=UDim2.new(1,-10,0,ao.TextBounds.Y)
-	ac.CanvasSize=UDim2.new(0,0,0,ad.AbsoluteContentSize.Y+10)
-	ac.CanvasPosition=Vector2.new(0,ad.AbsoluteContentSize.Y-ac.AbsoluteSize.Y)
+table.insert(al,an)
+local ao=Instance.new("TextLabel")
+ao.Size=UDim2.new(1,-10,0,0)
+ao.BackgroundTransparency=1
+ao.Text="> "..an
+ao.TextColor3=e.TextDim
+ao.TextSize=12
+ao.Font=Enum.Font.Code
+ao.TextXAlignment=Enum.TextXAlignment.Left
+ao.TextYAlignment=Enum.TextYAlignment.Top
+ao.TextWrapped=true
+ao.ZIndex=5
+ao.Parent=ac
+task.wait()
+ao.Size=UDim2.new(1,-10,0,ao.TextBounds.Y)
+ac.CanvasSize=UDim2.new(0,0,0,ad.AbsoluteContentSize.Y+10)
+ac.CanvasPosition=Vector2.new(0,ad.AbsoluteContentSize.Y-ac.AbsoluteSize.Y)
 end
 local function ap()
-	local aq=table.concat(al,"\n")
-	setclipboard(aq)
-	local ar=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=1})
-	ar:Play()
-	ar.Completed:Wait()
-	ae.Image="rbxassetid://14203226653"
-	ae.ImageColor3=e.Success
-	local as=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=0})
-	as:Play()
-	task.wait(1)
-	local at=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=1})
-	at:Play()
-	at.Completed:Wait()
-	ae.Image="rbxassetid://90434151822042"
-	ae.ImageColor3=e.TextDim
-	a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=0}):Play()
+local aq=table.concat(al,"\n")
+setclipboard(aq)
+local ar=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=1})
+ar:Play()
+ar.Completed:Wait()
+ae.Image="rbxassetid://14203226653"
+ae.ImageColor3=e.Success
+local as=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=0})
+as:Play()
+task.wait(1)
+local at=a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=1})
+at:Play()
+at.Completed:Wait()
+ae.Image="rbxassetid://90434151822042"
+ae.ImageColor3=e.TextDim
+a:Create(ae,TweenInfo.new(0.2),{ImageTransparency=0}):Play()
 end
 ae.MouseButton1Click:Connect(ap)
 for _,au in pairs({u,v,w})do
-	au.MouseEnter:Connect(function()
-		a:Create(au,TweenInfo.new(0.15,Enum.EasingStyle.Quad),{Size=UDim2.new(0,14,0,14)}):Play()
-	end)
-	au.MouseLeave:Connect(function()
-		a:Create(au,TweenInfo.new(0.15,Enum.EasingStyle.Quad),{Size=UDim2.new(0,12,0,12)}):Play()
-	end)
+au.MouseEnter:Connect(function()
+a:Create(au,TweenInfo.new(0.15,Enum.EasingStyle.Quad),{Size=UDim2.new(0,14,0,14)}):Play()
+end)
+au.MouseLeave:Connect(function()
+a:Create(au,TweenInfo.new(0.15,Enum.EasingStyle.Quad),{Size=UDim2.new(0,12,0,12)}):Play()
+end)
 end
 u.MouseButton1Click:Connect(function()
-	local av=TweenInfo.new(0.25)
-	for _,aw in ipairs(f:GetDescendants())do
-		if aw:IsA("GuiObject")then
-			local ax={}
-			if aw:IsA("Frame")or aw:IsA("ImageLabel")or aw:IsA("ImageButton")or aw:IsA("ViewportFrame")or aw:IsA("ScrollingFrame")then
-				ax.BackgroundTransparency=1
-			end
-			if aw:IsA("TextLabel")or aw:IsA("TextButton")or aw:IsA("TextBox")then
-				ax.TextTransparency=1
-			end
-			if aw:IsA("ImageLabel")or aw:IsA("ImageButton")then
-				ax.ImageTransparency=1
-			end
-			if next(ax)then
-				a:Create(aw,av,ax):Play()
-			end
-		end
-	end
-	task.wait(0.3)
-	f:Destroy()
+local av=TweenInfo.new(0.25)
+for _,aw in ipairs(f:GetDescendants())do
+if aw:IsA("GuiObject")then
+local ax={}
+if aw:IsA("Frame")or aw:IsA("ImageLabel")or aw:IsA("ImageButton")or aw:IsA("ViewportFrame")or aw:IsA("ScrollingFrame")then
+ax.BackgroundTransparency=1
+end
+if aw:IsA("TextLabel")or aw:IsA("TextButton")or aw:IsA("TextBox")then
+ax.TextTransparency=1
+end
+if aw:IsA("ImageLabel")or aw:IsA("ImageButton")then
+ax.ImageTransparency=1
+end
+if next(ax)then
+a:Create(aw,av,ax):Play()
+end
+end
+end
+task.wait(0.3)
+f:Destroy()
 end)
 w.MouseButton1Click:Connect(function()
-	local ay=TweenInfo.new(0.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
-	if g.Size~=UDim2.new(1,0,1,0)then
-		a:Create(g,ay,{Size=UDim2.new(1,0,1,0),Position=UDim2.new(0,0,0,0)}):Play()
-		a:Create(y,ay,{Size=UDim2.new(0.9,0,0.7,0),Position=UDim2.new(0.05,0,0,50)}):Play()
-		a:Create(af,ay,{Position=UDim2.new(0.1,0,0.92,0)}):Play()
-	else
-		a:Create(g,ay,{Size=UDim2.new(0.65,0,0.65,0),Position=UDim2.new(0.175,0,0.175,0)}):Play()
-		a:Create(y,ay,{Size=UDim2.new(0.9,0,0.6,0),Position=UDim2.new(0.05,0,0,50)}):Play()
-		a:Create(af,ay,{Position=UDim2.new(0.1,0,0.88,0)}):Play()
-	end
+local ay=TweenInfo.new(0.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)
+if g.Size~=UDim2.new(1,0,1,0)then
+a:Create(g,ay,{Size=UDim2.new(1,0,1,0),Position=UDim2.new(0,0,0,0)}):Play()
+a:Create(y,ay,{Size=UDim2.new(0.9,0,0.7,0),Position=UDim2.new(0.05,0,0,50)}):Play()
+a:Create(af,ay,{Position=UDim2.new(0.1,0,0.92,0)}):Play()
+else
+a:Create(g,ay,{Size=UDim2.new(0.65,0,0.65,0),Position=UDim2.new(0.175,0,0.175,0)}):Play()
+a:Create(y,ay,{Size=UDim2.new(0.9,0,0.6,0),Position=UDim2.new(0.05,0,0,50)}):Play()
+a:Create(af,ay,{Position=UDim2.new(0.1,0,0.88,0)}):Play()
+end
 end)
 local az=game:GetService("MarketplaceService")
 local ba=game:GetService("RunService")
@@ -294,78 +294,78 @@ task.wait(0.02)
 local bc=game.PlaceId
 am("Game ID: "..tostring(bc))
 task.wait(0.12)
-local bd={[1240123653]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[1632210982]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[12240122896]="https://apigetunx.vercel.app/Games/FigureL.lua",[136801880565837]="https://apigetunx.vercel.app/Games/Flick.lua"}
+local bd={[1240123653]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[1632210982]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[12240122896]="https://apigetunx.vercel.app/Games/FigureL.lua",[136801880565837]="https://apigetunx.vercel.app/Games/Flick.lua",[893973440]="https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Flee.lua"}
 local be,bf
 if bd[bc]then
-	getgenv().unxshared.issupported=true
-	am("Game verified, loading "..getgenv().unxshared.gamename.." | Dev Note: "..getgenv().unxshared.devnote)
-	task.wait(0.05)
-	am("Fetching game-specific script...")
-	task.wait(0.01)
-	be,bf=pcall(function()
-		local scriptUrl=bd[bc]
-		local src=game:HttpGet(scriptUrl)
-		local func,err=loadstring(src,scriptUrl)
-		if not func then error(err) end
-		func()
-	end)
+getgenv().unxshared.issupported=true
+am("Game verified, loading "..getgenv().unxshared.gamename.." | Dev Note: "..getgenv().unxshared.devnote)
+task.wait(0.05)
+am("Fetching game-specific script...")
+task.wait(0.01)
+be,bf=pcall(function()
+local scriptUrl=bd[bc]
+local src=game:HttpGet(scriptUrl)
+local func,err=loadstring(src,scriptUrl)
+if not func then error(err) end
+func()
+end)
 else
-	getgenv().unxshared.issupported=false
-	am("Game not supported, loading universal")
-	task.wait(0.03)
-	am("Fetching universal script...")
-	task.wait(0.1)
-	be,bf=pcall(function()
-		local scriptUrl="https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Games/Universal.lua"
-		local src=game:HttpGet(scriptUrl)
-		local func,err=loadstring(src,scriptUrl)
-		if not func then error(err) end
-		func()
-	end)
+getgenv().unxshared.issupported=false
+am("Game not supported, loading universal")
+task.wait(0.03)
+am("Fetching universal script...")
+task.wait(0.1)
+be,bf=pcall(function()
+local scriptUrl="https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Games/Universal.lua"
+local src=game:HttpGet(scriptUrl)
+local func,err=loadstring(src,scriptUrl)
+if not func then error(err) end
+func()
+end)
 end
 if be then
-	getgenv().unxshared.isloaded=true
-	am("Script loaded successfully")
-	task.wait(0.05)
-	am("Initialization complete!")
-	task.wait(0.7)
-	local bg=TweenInfo.new(0.25)
-	for _,bh in ipairs(f:GetDescendants())do
-		if bh:IsA("GuiObject")then
-			local bi={}
-			if bh:IsA("Frame")or bh:IsA("ImageLabel")or bh:IsA("ImageButton")or bh:IsA("ViewportFrame")or bh:IsA("ScrollingFrame")then
-				bi.BackgroundTransparency=1
-			end
-			if bh:IsA("TextLabel")or bh:IsA("TextButton")or bh:IsA("TextBox")then
-				bi.TextTransparency=1
-			end
-			if bh:IsA("ImageLabel")or bh:IsA("ImageButton")then
-				bi.ImageTransparency=1
-			end
-			if next(bi)then
-				a:Create(bh,bg,bi):Play()
-			end
-		end
-	end
-	task.wait(0.3)
-	f:Destroy()
+getgenv().unxshared.isloaded=true
+am("Script loaded successfully")
+task.wait(0.05)
+am("Initialization complete!")
+task.wait(0.7)
+local bg=TweenInfo.new(0.25)
+for _,bh in ipairs(f:GetDescendants())do
+if bh:IsA("GuiObject")then
+local bi={}
+if bh:IsA("Frame")or bh:IsA("ImageLabel")or bh:IsA("ImageButton")or bh:IsA("ViewportFrame")or bh:IsA("ScrollingFrame")then
+bi.BackgroundTransparency=1
+end
+if bh:IsA("TextLabel")or bh:IsA("TextButton")or bh:IsA("TextBox")then
+bi.TextTransparency=1
+end
+if bh:IsA("ImageLabel")or bh:IsA("ImageButton")then
+bi.ImageTransparency=1
+end
+if next(bi)then
+a:Create(bh,bg,bi):Play()
+end
+end
+end
+task.wait(0.3)
+f:Destroy()
 else
-	getgenv().unxshared.isloaded=false
-	local errorMsg=tostring(bf):gsub("`","")
-	local kickTitle="UNXHub"
-	local kickBody=
-		"<font color='rgb(255,100,100)'>An error occurred and UNXHub must close.</font>\n\n"..
-		"<font color='rgb(220,220,220)'>Error: </font><font color='rgb(255,150,150)'>"..errorMsg.."</font>\n\n"..
-		"<font color='rgb(100,200,255)'>Please report this issue on our Discord server:</font>\n"..
-		"<font color='rgb(0,170,255)'>https://discord.gg/zpaMS8qUfB</font>"
-	local success,cKickModule=pcall(function()
-		return loadstring(game:HttpGet("https://api-gatostuff.vercel.app/raw/scripts/cKick.lua"))()
-	end)
-	if success and cKickModule and cKickModule.cKick then
-		pcall(cKickModule.cKick,kickTitle,kickBody)
-	else
-		warn("UNXHub Loader Error (cKick failed):",bf)
-		if f and f.Parent then f:Destroy() end
-	end
-	task.wait(1)
+getgenv().unxshared.isloaded=false
+local errorMsg=tostring(bf):gsub("`","")
+local kickTitle="UNXHub"
+local kickBody=
+"<font color='rgb(255,100,100)'>An error occurred and UNXHub must close.</font>\n\n"..
+"<font color='rgb(220,220,220)'>Error: </font><font color='rgb(255,150,150)'>"..errorMsg.."</font>\n\n"..
+"<font color='rgb(100,200,255)'>Please report this issue on our Discord server:</font>\n"..
+"<font color='rgb(0,170,255)'>https://discord.gg/zpaMS8qUfB</font>"
+local success,cKickModule=pcall(function()
+return loadstring(game:HttpGet("https://api-gatostuff.vercel.app/raw/scripts/cKick.lua"))()
+end)
+if success and cKickModule and cKickModule.cKick then
+pcall(cKickModule.cKick,kickTitle,kickBody)
+else
+warn("UNXHub Loader Error (cKick failed):",bf)
+if f and f.Parent then f:Destroy() end
+end
+task.wait(1)
 end
