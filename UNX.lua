@@ -312,7 +312,7 @@ task.wait(0.02)
 local bc=game.PlaceId
 am("Game ID: "..tostring(bc))
 task.wait(0.12)
-local bd={[1240123653]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[1632210982]="https://apigetunx.vercel.app/Games/ZombieAttack.lua",[12240122896]="https://apigetunx.vercel.app/Games/FigureL.lua",[136801880565837]="https://apigetunx.vercel.app/Games/Flick.lua",[893973440]="https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Flee.lua"}
+local bd={[12240122896]="https://apigetunx.vercel.app/Games/FigureL.lua",[136801880565837]="https://apigetunx.vercel.app/Games/Flick.lua",[893973440]="https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Flee.lua"}
 local be,bf
 if bd[bc]then
 getgenv().unxshared.issupported=true
