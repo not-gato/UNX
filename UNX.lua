@@ -1,4 +1,3 @@
-
 local textb1 = [[
 Uh, Hey I Din't Expect u to look here on the console
 or the script source code... well your already here so...
@@ -301,7 +300,7 @@ am("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
 task.wait(0.1)
 am("Creating global variables...")
 task.wait(0.05)
-getgenv().unxshared={version="2.2.2 (Patch 1)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="https://discord.gg/zpaMS8qUfB"}
+getgenv().unxshared={version="2.2.2 (Patch 1)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="also try nebula!"}
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 
 am("Player: "..d.Name.." (ID: "..d.UserId..")")
