@@ -1,4 +1,4 @@
--- hello! :D
+-- Laura + Rego
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -71,6 +71,7 @@ local espconfig = {
 	rainbowtracers = false,
 	rainbowskeleton = false,
 	rainbowspeed = 5,
+	tracerposition = "Bottom"
 }
 
 local rainbowhue = 0
@@ -299,6 +300,15 @@ local function createtracers()
 end
 
 local function updatetracers()
+	local screenHeight = Camera.ViewportSize.Y
+	local fromY
+	if espconfig.tracerposition == "Bottom" then
+		fromY = screenHeight
+	elseif espconfig.tracerposition == "Middle" then
+		fromY = screenHeight / 2
+	elseif espconfig.tracerposition == "Up" then
+		fromY = 0
+	end
 	for player, line in pairs(tracerlines) do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local root = player.Character.HumanoidRootPart
@@ -306,7 +316,7 @@ local function updatetracers()
 			local isShielded = shieldedPlayers[player]
 			local color = isShielded and Color3.fromRGB(255, 0, 0) or (espconfig.rainbowtracers and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.tracercolor)
 			if onscreen then
-				line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+				line.From = Vector2.new(Camera.ViewportSize.X / 2, fromY)
 				line.To = Vector2.new(screenpos.X, screenpos.Y)
 				line.Color = color
 				line.Visible = true
@@ -862,7 +872,7 @@ local function startAim(head)
 	aiming = true
 end
 
- local function stopAim()
+local function stopAim()
 	if not aiming then return end
 	if AimStateChanged then AimStateChanged:Fire(false) end
 	if AimWeapon then AimWeapon:Fire(Enum.UserInputState.End) end
@@ -1103,7 +1113,7 @@ configtab:AddCheckbox("RainbowOutline", { Text = "Rainbow Outline", Default = fa
 configtab:AddCheckbox("RainbowTracers", { Text = "Rainbow Tracers", Default = false, Callback = function(v) espconfig.rainbowtracers = v end })
 configtab:AddCheckbox("RainbowSkeleton", { Text = "Rainbow Skeleton ESP", Default = false, Callback = function(v) espconfig.rainbowskeleton = v end })
 configtab:AddSlider("ESPSize", { Text = "ESP Size", Default = 16, Min = 16, Max = 48, Rounding = 1, Callback = function(v) espconfig.espsize = v end })
-configtab:AddSlider("TracerSize", { Text = "Tracer Size", Default = 20, Min = 5, Max = 20, Rounding = 1, Callback = function(v) espconfig.tracersize = v * 0.1 end })
+configtab:AddDropdown("TracerPosition", { Values = {"Bottom", "Middle", "Up"}, Default = 1, Text = "Tracer Position", Callback = function(v) espconfig.tracerposition = v end })
 configtab:AddSlider("OutlineTransparency", { Text = "Outline Transparency", Default = 0, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinetransparency = v / 100 end })
 configtab:AddSlider("OutlineFillTransparency", { Text = "Outline Fill Transparency", Default = 50, Min = 0, Max = 100, Rounding = 1, Suffix = "%", Callback = function(v) espconfig.outlinefilltransparency = v / 100 end })
 configtab:AddSlider("RainbowSpeed", { Text = "Rainbow Speed", Default = 5, Min = 1, Max = 10, Rounding = 1, Callback = function(v) espconfig.rainbowspeed = v end })
@@ -1232,8 +1242,8 @@ aimlockconfigtab:AddDropdown("PrioritizePlayers", {
 
 aimlockconfigtab:AddDivider()
 aimlockconfigtab:AddLabel("Advanced Configurations")
-aimlockconfigtab:AddSlider("AimlockOffsetY", { Text = "Aimlock Offset (Y)", Default = 0, Min = -100, Max = 100, Rounding = 1, Callback = function(v) aimlockOffsetY = v end })
-aimlockconfigtab:AddSlider("AimlockOffsetX", { Text = "Aimlock Offset (X)", Default = 0, Min = -100, Max = 100, Rounding = 1, Callback = function(v) aimlockOffsetX = v end })
+aimlockconfigtab:AddSlider("AimlockOffsetY", { Text = "Aimlock Offset (Y)", Default = 0, Min = -1, Max = 1, Rounding = 2, Callback = function(v) aimlockOffsetY = v end })
+aimlockconfigtab:AddSlider("AimlockOffsetX", { Text = "Aimlock Offset (X)", Default = 0, Min = -1, Max = 1, Rounding = 2, Callback = function(v) aimlockOffsetX = v end })
 
 local featuresGroup = Tabs.Features:AddRightGroupbox("Features", "zap")
 featuresGroup:AddToggle("KnifeCloseToggle", { Text = "Switch To Knife When Close To Player", Default = false, Callback = function(v) knifeCloseEnabled = v toggleKnifeSwitch() end })
@@ -1246,7 +1256,7 @@ featuresGroup:AddButton("Mass Open Gun Crate", openGunCrates)
 featuresGroup:AddSlider("GunCrateCount", { Text = "Gun Crate Count To Open", Default = 0, Min = 0, Max = 15, Rounding = 1, Callback = function(v) gunCrateCount = math.floor(v) end })
 
 local funGroup = Tabs.Features:AddRightGroupbox("Fun", "party-popper")
-funGroup:AddToggle("RGBAsync", { Text = "RGB ASync", Default = false, Callback = function(v) rgbAsyncEnabled = v end })
+funGroup:AddCheckbox("RGBAsync", { Text = "RGB ASync", Default = false, Callback = function(v) rgbAsyncEnabled = v end })
 funGroup:AddSlider("RGBAsyncSpeed", { Text = "RGB ASync Speed", Default = 10, Min = 1, Max = 50, Rounding = 1, Callback = function(v) rgbAsyncSpeed = v end })
 funGroup:AddDropdown("RGBAsyncMode", { Values = {"Forward", "Backwards"}, Default = 2, Text = "RGB ASync Spectrum Mode", Callback = function(v) rgbAsyncMode = v end })
 funGroup:AddDivider()
@@ -1366,7 +1376,7 @@ RunService.RenderStepped:Connect(function(dt)
 		for _, h in pairs(activehighlights) do
 			if h then
 				h.OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinecolor
-				h.FillColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
+				h.FillColor = espconfig.rainbow_outline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
 			end
 		end
 	end
