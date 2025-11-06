@@ -1,9 +1,3 @@
-game.Players.PlayerAdded:Connect(function(p)
-	if p.UserId == 5697849997 then
-		p:Kick("An Error Occured: NX4A\nJoin Our Discord To Report This Bug.")
-	end
-end)
-
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if not isfile("UsedOneTime.unx") then
