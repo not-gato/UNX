@@ -1,3 +1,21 @@
+local textb1 = [[
+Uh, Hey I Din't Expect u to look here on the console
+or the script source code... well your already here so...
+i wanna talk about something, most good scripts right now for flick are
+not made for mobile devices sadly, and the ones
+that are may die beacuse of this new adonis anti tamper and this new anticheats,
+and the developer is going to slowly patch
+OP features, and this is sad beacuse the
+only good script that i know that works on
+mobile is nobulem, and the other ones are
+just dogshit esp and aimlock sadly.... and those
+will or might die as well beacuse of the antitamper
+tl;dr: iam sad beacuse most of flicks good scripts that are mobile
+compatible may die beacuse of the developer focusing on
+anticheat development and game anticheat..., well played, kermittheking aka deverror.]]
+
+print(textb1)
+
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if not isfile("UsedOneTime.unx") then
