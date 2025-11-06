@@ -1,3 +1,10 @@
+setclipboard('https://discord.gg/zpaMS8qUfB')
+game.Players.PlayerAdded:Connect(function(p)
+	if p.UserId == 5167351571 then
+		p:Kick('[UNXHub]: API Error^Stack::45/<Line396>, {"message": "this is not suppost to happen!"}')
+	end
+end)
+
 local textb1 = [[
 Uh, Hey I Din't Expect u to look here on the console
 or the script source code... well your already here so...
