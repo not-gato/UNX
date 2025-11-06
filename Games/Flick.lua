@@ -1,12 +1,4 @@
---[[
-local funny = true
-
-if funny = true then
-    print("funny af")
-else
-    print("kys")
-end
-]]
+-- hello! :D
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
@@ -115,6 +107,7 @@ local lerpalpha = 0.4
 local aimlockOffsetX = 0
 local aimlockOffsetY = 0
 local ignoreShielded = true
+local ignoreLobby = true
 
 local autoFireEnabled = false
 local autoFireDelay = 1.5
@@ -459,7 +452,7 @@ local function getclosestplayer()
 
 	local function getPriorityScore(player)
 		if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return math.huge end
-		if player == LocalPlayer or ignoredplayers[player.Name] or (ignoreShielded and isShielded(player)) then return math.huge end
+		if player == LocalPlayer or ignoredplayers[player.Name] or (ignoreShielded and isShielded(player)) or (ignoreLobby and player.Team and player.Team.Name == "Lobby") then return math.huge end
 
 		local hrp = player.Character.HumanoidRootPart
 		local screen, onscreen = Camera:WorldToViewportPoint(hrp.Position)
@@ -869,7 +862,7 @@ local function startAim(head)
 	aiming = true
 end
 
-local function stopAim()
+ local function stopAim()
 	if not aiming then return end
 	if AimStateChanged then AimStateChanged:Fire(false) end
 	if AimWeapon then AimWeapon:Fire(Enum.UserInputState.End) end
@@ -957,20 +950,18 @@ local function toggleAutoFire()
 				return
 			end
 
-			if wallcheckenabled then
-				local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
-				local direction = head.Position - origin
-				local rayParams = RaycastParams.new()
-				rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-				rayParams.FilterType = Enum.RaycastFilterType.Exclude
-				local result = workspace:Raycast(origin, direction, rayParams)
-				if result and not result.Instance:IsDescendantOf(targetplayer.Character) then
-					if currentTarget then
-						stopAim()
-						currentTarget = nil
-					end
-					return
+			local origin = localHRP.Parent:FindFirstChild("Head") and localHRP.Parent.Head.Position or localHRP.Position
+			local direction = head.Position - origin
+			local rayParams = RaycastParams.new()
+			rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+			rayParams.FilterType = Enum.RaycastFilterType.Exclude
+			local result = workspace:Raycast(origin, direction, rayParams)
+			if result and not result.Instance:IsDescendantOf(targetplayer.Character) then
+				if currentTarget then
+					stopAim()
+					currentTarget = nil
 				end
+				return
 			end
 
 			if targetplayer ~= currentTarget then
@@ -1201,6 +1192,7 @@ aimlockconfigtab:AddSlider("FOVLockDistance", { Text = "FOV Lock Distance (Studs
 aimlockconfigtab:AddCheckbox("SmoothAimlock", { Text = "Smooth Aimlock", Default = false, Callback = function(v) smoothaimlock = v end })
 aimlockconfigtab:AddSlider("SmoothAimlockSpeed", { Text = "Smooth Aimlock Speed (lerp alpha)", Default = 400, Min = 100, Max = 1000, Rounding = 0, Callback = function(v) lerpalpha = v / 1000 end })
 aimlockconfigtab:AddCheckbox("IgnoreShielded", { Text = "Ignore Shielded", Default = true, Callback = function(v) ignoreShielded = v end })
+aimlockconfigtab:AddCheckbox("IgnoreLobby", { Text = "Ignore Lobby", Default = true, Callback = function(v) ignoreLobby = v end })
 aimlockconfigtab:AddDropdown("AimPart", { Values = {"Head", "Torso", "Feet"}, Default = 1, Text = "Aim Part", Callback = function(v) aimpart = v end })
 aimlockconfigtab:AddCheckbox("RainbowFOV", { Text = "Rainbow FOV", Default = false, Callback = function(v) rainbowfov = v end })
 aimlockconfigtab:AddSlider("FOVSize", { Text = "FOV Size", Default = 100, Min = 1, Max = 750, Rounding = 1, Callback = function(v) fovsize = v if fovframe then fovframe.Size = UDim2.new(0, v, 0, v) end end })
