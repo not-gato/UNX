@@ -1594,5 +1594,5 @@ end
 if isPCPlatform() then
     button.Visible = showToggle
 else
-    button.Visible = false
+    print("NOT ON A PC!!!!, PASS!")
 end
