@@ -7,6 +7,7 @@ local Toggles = Library.Toggles
 
 Library.ForceCheckbox = true
 Library.ShowToggleFrameInKeybinds = true
+Library.ToggleKeybind = Enum.KeyCode.U
 
 local Window = Library:CreateWindow({
 	Title = "UNXHub",
