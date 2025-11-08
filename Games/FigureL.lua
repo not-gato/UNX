@@ -1452,6 +1452,7 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
+Library.ToggleKeybind = Enum.KeyCode.U
 Library.ForceCheckbox = true
 
 local Window = Library:CreateWindow({
