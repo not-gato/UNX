@@ -1,21 +1,3 @@
-local textb1 = [[
-Uh, Hey I Din't Expect u to look here on the console
-or the script source code... well your already here so...
-i wanna talk about something, most good scripts right now for flick are
-not made for mobile devices sadly, and the ones
-that are may die beacuse of this new adonis anti tamper and this new anticheats,
-and the developer is going to slowly patch
-OP features, and this is sad beacuse the
-only good script that i know that works on
-mobile is nobulem, and the other ones are
-just dogshit esp and aimlock sadly.... and those
-will or might die as well beacuse of the antitamper
-tl;dr: iam sad beacuse most of flicks good scripts that are mobile
-compatible may die beacuse of the developer focusing on
-anticheat development and game anticheat..., well played, kermittheking aka deverror.]]
-
-print(textb1)
-
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if not isfile("UsedOneTime.unx") then
@@ -210,7 +192,8 @@ task.wait(2.4)
 end
 end)
 local al={}
-local function am(an)
+local HapticService = game:GetService("HapticService")
+local function s(an)
 table.insert(al,an)
 local ao=Instance.new("TextLabel")
 ao.Size=UDim2.new(1,-10,0,0)
@@ -228,6 +211,21 @@ task.wait()
 ao.Size=UDim2.new(1,-10,0,ao.TextBounds.Y)
 ac.CanvasSize=UDim2.new(0,0,0,ad.AbsoluteContentSize.Y+10)
 ac.CanvasPosition=Vector2.new(0,ad.AbsoluteContentSize.Y-ac.AbsoluteSize.Y)
+pcall(function()
+    local gamepadType = Enum.UserInputType.Gamepad1
+    local touchType = Enum.UserInputType.Touch
+    local smallMotor = Enum.VibrationMotor.Small
+    local largeMotor = Enum.VibrationMotor.Large
+    if HapticService:IsVibrationSupported(gamepadType) and HapticService:IsMotorSupported(gamepadType, smallMotor) then
+        HapticService:SetMotor(gamepadType, smallMotor, 0.3)
+        task.wait(0.05)
+        HapticService:SetMotor(gamepadType, smallMotor, 0)
+    elseif HapticService:IsVibrationSupported(touchType) and HapticService:IsMotorSupported(touchType, largeMotor) then
+        HapticService:SetMotor(touchType, largeMotor, 1)
+        task.wait(0.05)
+        HapticService:SetMotor(touchType, largeMotor, 0)
+    end
+end)
 end
 local function ap()
 local aq=table.concat(al,"\n")
@@ -293,32 +291,32 @@ end)
 local az=game:GetService("MarketplaceService")
 local ba=game:GetService("RunService")
 local bb=game:GetService("Stats")
-am("UNXHub Loader v2.1.0 initialized")
-am("[WARNING]: By executing UNXHub you accept our Terms Of Service")
-am("[WARNING]: Learn more on http://getunx.vercel.app/tos.html")
-am("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
+s("UNXHub Loader v2.1.0 initialized")
+s("[WARNING]: By executing UNXHub you accept our Terms Of Service")
+s("[WARNING]: Learn more on http://getunx.vercel.app/tos.html")
+s("[WARNING]: PLEASE READ THE MESSAGE ABOVE!!!!!")
 task.wait(0.1)
-am("Creating global variables...")
+s("Creating global variables...")
 task.wait(0.05)
-getgenv().unxshared={version="2.2.2 (Patch 1)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="also try nebula!"}
+getgenv().unxshared={version="2.2.2 (Patch 1)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="Made with 💖 by Gato"}
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 
-am("Player: "..d.Name.." (ID: "..d.UserId..")")
+s("Player: "..d.Name.." (ID: "..d.UserId..")")
 task.wait(0.05)
-am("Game: "..getgenv().unxshared.gamename)
+s("Game: "..getgenv().unxshared.gamename)
 task.wait(0.14)
-am("Checking game compatibility...")
+s("Checking game compatibility...")
 task.wait(0.02)
 local bc=game.PlaceId
-am("Game ID: "..tostring(bc))
+s("Game ID: "..tostring(bc))
 task.wait(0.12)
 local bd={[12240122896]="https://apigetunx.vercel.app/Games/FigureL.lua",[136801880565837]="https://apigetunx.vercel.app/Games/Flick.lua",[893973440]="https://github.com/not-gato/UNX/raw/refs/heads/main/Games/Flee.lua"}
 local be,bf
 if bd[bc]then
 getgenv().unxshared.issupported=true
-am("Game verified, loading "..getgenv().unxshared.gamename.." | Dev Note: "..getgenv().unxshared.devnote)
+s("Game verified, loading "..getgenv().unxshared.gamename.." | Dev Note: "..getgenv().unxshared.devnote)
 task.wait(0.05)
-am("Fetching game-specific script...")
+s("Fetching game-specific script...")
 task.wait(0.01)
 be,bf=pcall(function()
 local scriptUrl=bd[bc]
@@ -329,9 +327,9 @@ func()
 end)
 else
 getgenv().unxshared.issupported=false
-am("Game not supported, loading universal")
+s("Game not supported, loading universal")
 task.wait(0.03)
-am("Fetching universal script...")
+s("Fetching universal script...")
 task.wait(0.1)
 be,bf=pcall(function()
 local scriptUrl="https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Games/Universal.lua"
@@ -343,9 +341,9 @@ end)
 end
 if be then
 getgenv().unxshared.isloaded=true
-am("Script loaded successfully")
+s("Script loaded successfully")
 task.wait(0.05)
-am("Initialization complete!")
+s("Initialization complete!")
 task.wait(0.7)
 local bg=TweenInfo.new(0.25)
 for _,bh in ipairs(f:GetDescendants())do
