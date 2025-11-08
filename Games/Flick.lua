@@ -1283,7 +1283,7 @@ menugroup:AddCheckbox("ShowCustomCursor", { Text = "Custom Cursor", Default = tr
 menugroup:AddDropdown("NotificationSide", { Values = { "Left", "Right" }, Default = "Right", Text = "Notification Side", Callback = function(v) Library:SetNotifySide(v) end })
 menugroup:AddDropdown("DPIDropdown", { Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" }, Default = "100%", Text = "DPI Scale", Callback = function(v) v = v:gsub("%%", "") local dpi = tonumber(v) Library:SetDPIScale(dpi) end })
 menugroup:AddDivider()
-MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "U", NoUI = true, Text = "Menu keybind"})
+menugroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {Default = "U", NoUI = true, Text = "Menu keybind"})
 menugroup:AddButton("Unload", function() Library:Unload() end)
 menugroup:AddLabel("<font color='rgb(255,0,0)'><u>DISCLAIMER</u></font>: We Use This To See How Many Users We Get, <u>We Do Not Share This Information With Any Third Partys</u>.", true)
 menugroup:AddCheckbox("OptOutLog", {
