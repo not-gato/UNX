@@ -61,30 +61,33 @@ local TeleportLocations = {
 local function SmartTeleport(targetPos)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
     local root = char.HumanoidRootPart
-    local teleportType = Options.TeleportType.Value
-    local useNoclip = Toggles.NoclipOnTween.Value
-    local originalNoclip = Toggles.NoClip.Value
-
+    local teleportType = Options.TeleportType and Options.TeleportType.Value or "Instant (TP)"
+    local useNoclip = Toggles.NoclipOnTween and Toggles.NoclipOnTween.Value or false
+    local originalNoclip = Toggles.NoClip and Toggles.NoClip.Value or false
+    
     if teleportType == "Instant (TP)" then
         root.CFrame = CFrame.new(targetPos)
         return
     end
-
+    
     local distance = (root.Position - targetPos).Magnitude
-    local duration = distance / Options.TweenSpeed.Value
+    -- <CHANGE> Added nil check for Options.TweenSpeed.Value with default of 100
+    local tweenSpeed = Options.TweenSpeed and Options.TweenSpeed.Value or 100
+    local duration = distance / tweenSpeed
     if duration <= 0 then duration = 0.1 end
-
+    
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
     local tween = TweenService:Create(root, tweenInfo, {CFrame = CFrame.new(targetPos)})
-
-    if useNoclip then
+    
+    if useNoclip and Toggles.NoClip then
         Toggles.NoClip:SetValue(true)
     end
-
+    
     tween:Play()
     tween.Completed:Connect(function()
-        if useNoclip and not originalNoclip then
+        if useNoclip and not originalNoclip and Toggles.NoClip then
             Toggles.NoClip:SetValue(false)
         end
     end)
@@ -97,6 +100,7 @@ MainOtherGB:AddButton("Teleport (Map Voting #2)", function() SmartTeleport(Telep
 MainOtherGB:AddButton("Teleport (Map Voting #3)", function() SmartTeleport(TeleportLocations["Map Voting #3"]) end)
 MainOtherGB:AddButton("Teleport (Map Voting #4)", function() SmartTeleport(TeleportLocations["Map Voting #4"]) end)
 MainOtherGB:AddDivider()
+
 MainOtherGB:AddButton("Teleport (Beast)", function()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Hammer") then
@@ -107,6 +111,7 @@ MainOtherGB:AddButton("Teleport (Beast)", function()
 end)
 
 local survivorNames = {"No Survivors"}
+
 local function UpdateSurvivorDropdown()
     local newNames = {}
     for _, player in ipairs(Players:GetPlayers()) do
@@ -125,8 +130,9 @@ local function UpdateSurvivorDropdown()
 end
 
 MainOtherGB:AddDropdown("SurvivorDropdown", {Text = "Survivors", Values = {}, Default = 1, Searchable = true, Scrollable = true})
+
 MainOtherGB:AddButton("Teleport (Survivor)", function()
-    local target = Options.SurvivorDropdown.Value
+    local target = Options.SurvivorDropdown and Options.SurvivorDropdown.Value
     if target and target ~= "No Survivors" then
         local player = Players:FindFirstChild(target)
         if player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -155,6 +161,7 @@ local function ScanComputers()
 end
 
 local computerNames = {"No Computers"}
+
 local function UpdateComputerDropdown()
     ScanComputers()
     local newNames = {}
@@ -172,8 +179,9 @@ local function UpdateComputerDropdown()
 end
 
 MainOtherGB:AddDropdown("ComputerDropdown", {Text = "Computers", Values = {}, Default = 1, Searchable = true, Scrollable = true})
+
 MainOtherGB:AddButton("Teleport (Computer)", function()
-    local target = Options.ComputerDropdown.Value
+    local target = Options.ComputerDropdown and Options.ComputerDropdown.Value
     if target and target ~= "No Computers" then
         local index = tonumber(target:match("#(%d+)"))
         if index and ESPData.KnownComputers[index] then
@@ -185,11 +193,13 @@ end)
 
 MainOtherGB:AddLabel("Other")
 MainOtherGB:AddDivider()
+
 MainOtherGB:AddDropdown("TeleportType", {
     Text = "Teleport Type",
     Values = {"Instant (TP)", "Slow (Tween)"},
     Default = 1,
 })
+
 MainOtherGB:AddSlider("TweenSpeed", {
     Text = "Tween Speed (Studs/s)",
     Default = 100,
@@ -197,6 +207,7 @@ MainOtherGB:AddSlider("TweenSpeed", {
     Max = 250,
     Rounding = 0,
 })
+
 MainOtherGB:AddToggle("NoclipOnTween", {
     Text = "Noclip On Tween",
     Default = true,
@@ -205,20 +216,22 @@ MainOtherGB:AddToggle("NoclipOnTween", {
 local function ApplyCharacterMods()
     local char = LocalPlayer.Character
     if not char then return end
+    
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then
-        hum.WalkSpeed = Options.WalkSpeed.Value
-        hum.JumpPower = Options.JumpPower.Value
+        hum.WalkSpeed = Options.WalkSpeed and Options.WalkSpeed.Value or 16
+        hum.JumpPower = Options.JumpPower and Options.JumpPower.Value or 50
     end
 end
 
 local function ApplyZoom()
-    LocalPlayer.CameraMaxZoomDistance = Options.MaxZoom.Value
+    LocalPlayer.CameraMaxZoomDistance = Options.MaxZoom and Options.MaxZoom.Value or 128
 end
 
 local function ApplyNoVelocity()
     local char = LocalPlayer.Character
     if not char then return end
+    
     local root = char:FindFirstChild("HumanoidRootPart")
     if root then
         root.Velocity = Vector3.new(0, 0, 0)
@@ -230,7 +243,7 @@ local noClipConn, bunnyHopConn
 local lastJump = 0
 
 local function ToggleNoClip()
-    if Toggles.NoClip.Value then
+    if Toggles.NoClip and Toggles.NoClip.Value then
         local char = LocalPlayer.Character
         if char then
             noClipConn = RunService.Stepped:Connect(function()
@@ -251,13 +264,16 @@ local function ToggleNoClip()
 end
 
 local function ToggleBunnyHop()
-    if Toggles.BunnyHop.Value then
+    if Toggles.BunnyHop and Toggles.BunnyHop.Value then
         bunnyHopConn = RunService.Heartbeat:Connect(function()
             local char = LocalPlayer.Character
             if not char then return end
+            
             local hum = char:FindFirstChildOfClass("Humanoid")
             if not hum or hum.FloorMaterial == Enum.Material.Air then return end
-            if tick() - lastJump >= Options.BunnyHopDelay.Value then
+            
+            local delay = Options.BunnyHopDelay and Options.BunnyHopDelay.Value or 0.2
+            if tick() - lastJump >= delay then
                 hum:ChangeState(Enum.HumanoidStateType.Jumping)
                 lastJump = tick()
             end
@@ -276,7 +292,7 @@ task.spawn(function()
     Toggles.NoClip:OnChanged(ToggleNoClip)
     Toggles.BunnyHop:OnChanged(ToggleBunnyHop)
     Options.BunnyHopDelay:OnChanged(function()
-        if Toggles.BunnyHop.Value then ToggleBunnyHop() ToggleBunnyHop() end
+        if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() ToggleBunnyHop() end
     end)
 end)
 
@@ -284,8 +300,8 @@ LocalPlayer.CharacterAdded:Connect(function()
     task.wait(0.1)
     ApplyCharacterMods()
     ApplyZoom()
-    if Toggles.NoClip.Value then ToggleNoClip() end
-    if Toggles.BunnyHop.Value then ToggleBunnyHop() end
+    if Toggles.NoClip and Toggles.NoClip.Value then ToggleNoClip() end
+    if Toggles.BunnyHop and Toggles.BunnyHop.Value then ToggleBunnyHop() end
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -304,10 +320,10 @@ end)
 local VisualsTabbox = Tabs.Visuals:AddLeftTabbox()
 local ESPTab = VisualsTabbox:AddTab("ESPs", "scan")
 
-ESPTab:AddCheckbox("ComputerESP", {Text = "Computer ESP", Default = false}):AddColorPicker("ComputerESPColor", {Default = Color3.fromRGB(0,255,0)})
-ESPTab:AddCheckbox("FreezePodESP", {Text = "Freeze Pod ESP", Default = false}):AddColorPicker("FreezePodESPColor", {Default = Color3.fromRGB(0,255,255)})
-ESPTab:AddCheckbox("BeastESP", {Text = "Beast ESP", Default = false}):AddColorPicker("BeastESPColor", {Default = Color3.fromRGB(255,0,0)})
-ESPTab:AddCheckbox("SurvivorESP", {Text = "Survivor ESP", Default = false}):AddColorPicker("SurvivorESPColor", {Default = Color3.fromRGB(0,100,0)})
+ESPTab:AddToggle("ComputerESP", {Text = "Computer ESP", Default = false}):AddColorPicker("ComputerESPColor", {Default = Color3.fromRGB(0,255,0)})
+ESPTab:AddToggle("FreezePodESP", {Text = "Freeze Pod ESP", Default = false}):AddColorPicker("FreezePodESPColor", {Default = Color3.fromRGB(0,255,255)})
+ESPTab:AddToggle("BeastESP", {Text = "Beast ESP", Default = false}):AddColorPicker("BeastESPColor", {Default = Color3.fromRGB(255,0,0)})
+ESPTab:AddToggle("SurvivorESP", {Text = "Survivor ESP", Default = false}):AddColorPicker("SurvivorESPColor", {Default = Color3.fromRGB(0,100,0)})
 
 local ConfigTab = VisualsTabbox:AddTab("Configurations", "gear")
 
@@ -335,8 +351,8 @@ ConfigTab:AddSlider("OutlineTransparency", {Text = "Outline Transp (%)", Default
 local VisualsGameCamGB = Tabs.Visuals:AddRightGroupbox("Game & Camera", "camera")
 
 VisualsGameCamGB:AddSlider("FOVSlider", {Text = "FOV", Default = 80, Min = 80, Max = 120, Rounding = 0})
-VisualsGameCamGB:AddCheckbox("Fullbright", {Text = "Full Bright", Default = false}):AddColorPicker("FullbrightColor", {Default = Color3.fromRGB(255,255,255)})
-VisualsGameCamGB:AddCheckbox("NoFog", {Text = "No Fog", Default = false})
+VisualsGameCamGB:AddToggle("Fullbright", {Text = "Full Bright", Default = false}):AddColorPicker("FullbrightColor", {Default = Color3.fromRGB(255,255,255)})
+VisualsGameCamGB:AddToggle("NoFog", {Text = "No Fog", Default = false})
 
 local ESP = {Drawings = {}, Tracers = {}, Highlights = {}, KnownComputers = {}, KnownPods = {}, Connections = {}}
 local FontMap = {UI = 0, System = 1, Plex = 2, Monospace = 3}
@@ -360,7 +376,8 @@ local function CreateHighlight()
 end
 
 local function GetRainbow(speed)
-    return Color3.fromHSV((tick() * (speed or 10) / 10) % 1, 1, 1)
+    -- <CHANGE> Added nil check for speed parameter with default of 10
+    return Color3.fromHSV((tick() * ((speed or 10) / 10)) % 1, 1, 1)
 end
 
 local function RemoveESP(key)
@@ -412,7 +429,6 @@ Players.PlayerRemoving:Connect(function(player)
     RemoveESP("Surv_" .. player.UserId)
 end)
 
--- [NEW] Properly destroy tracers/highlights when toggles are disabled
 local function CleanupTracers()
     for key, tracer in pairs(ESP.Tracers) do
         if tracer and tracer.Remove then tracer:Remove() end
@@ -427,7 +443,6 @@ local function CleanupHighlights()
     end
 end
 
--- Connect toggle changes to cleanup
 Toggles.SurvivorTracers:OnChanged(function()
     if not Toggles.SurvivorTracers.Value then
         for _, player in ipairs(Players:GetPlayers()) do
@@ -549,32 +564,54 @@ end)
 local function UpdateESP()
     local cam = workspace.CurrentCamera
     if not cam then return end
+    
     local camPos = cam.CFrame.Position
     local showDist = Toggles.ShowDistance and Toggles.ShowDistance.Value
     local rainbow = Toggles.RainbowESPs and Toggles.RainbowESPs.Value
-
-    for _, d in pairs(ESP.Drawings) do if d and d.__OBJECT_EXISTS then d.Size = Options.ESPTextSize.Value; d.Font = FontMap[Options.ESPTextFont.Value] or 2 end end
-    for _, l in pairs(ESP.Tracers) do if l then l.Thickness = Options.TracerThickness.Value end end
-    for _, h in pairs(ESP.Highlights) do if h then h.FillTransparency = Options.OutlineFillTransparency.Value / 100; h.OutlineTransparency = Options.OutlineTransparency.Value / 100 end end
-
+    
+    -- <CHANGE> Added nil checks for Options values in ESP updates
+    for _, d in pairs(ESP.Drawings) do 
+        if d and d.__OBJECT_EXISTS then 
+            d.Size = Options.ESPTextSize and Options.ESPTextSize.Value or 16
+            d.Font = FontMap[Options.ESPTextFont and Options.ESPTextFont.Value or "Plex"] or 2
+        end 
+    end
+    
+    for _, l in pairs(ESP.Tracers) do 
+        if l then 
+            l.Thickness = Options.TracerThickness and Options.TracerThickness.Value or 2
+        end 
+    end
+    
+    for _, h in pairs(ESP.Highlights) do 
+        if h then 
+            -- <CHANGE> Added nil checks and safe division for transparency values
+            local fillTrans = Options.OutlineFillTransparency and Options.OutlineFillTransparency.Value or 100
+            local outTrans = Options.OutlineTransparency and Options.OutlineTransparency.Value or 0
+            h.FillTransparency = fillTrans / 100
+            h.OutlineTransparency = outTrans / 100
+        end 
+    end
+    
     if Toggles.ComputerESP and Toggles.ComputerESP.Value then
         for i, obj in ipairs(ESP.KnownComputers) do
             if obj and obj.Parent then
                 local key = "Comp_" .. obj:GetDebugId()
                 local drawing = ESP.Drawings[key] or CreateText(); ESP.Drawings[key] = drawing
-                local tracer = Toggles.ComputerTracers.Value and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
-                local hl = Toggles.OutlineComputers.Value and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
-                local color = rainbow and GetRainbow() or Options.ComputerESPColor.Value
+                local tracer = Toggles.ComputerTracers and Toggles.ComputerTracers.Value and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
+                local hl = Toggles.OutlineComputers and Toggles.OutlineComputers.Value and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
+                
+                local color = rainbow and GetRainbow() or (Options.ComputerESPColor and Options.ComputerESPColor.Value or Color3.fromRGB(0,255,0))
                 local pos = obj:GetPivot().Position + Vector3.new(0, 5, 0)
                 local screenPos, onScreen = cam:WorldToViewportPoint(pos)
-
+                
                 if onScreen then
                     local dist = math.floor((camPos - pos).Magnitude)
                     drawing.Text = showDist and ("Computer #"..i.." ["..dist.." studs]") or ("Computer #"..i)
                     drawing.Position = Vector2.new(screenPos.X, screenPos.Y)
                     drawing.Color = color
                     drawing.Visible = true
-
+                    
                     if tracer then
                         tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
                         tracer.To = Vector2.new(screenPos.X, screenPos.Y)
@@ -582,7 +619,7 @@ local function UpdateESP()
                         tracer.Visible = true
                         ESP.Tracers[key] = tracer
                     end
-
+                    
                     if hl then
                         hl.Parent = obj
                         hl.FillColor = color
@@ -605,25 +642,26 @@ local function UpdateESP()
             end
         end
     end
-
+    
     if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then
         for i, obj in ipairs(ESP.KnownPods) do
             if obj and obj.Parent then
                 local key = "Pod_" .. obj:GetDebugId()
                 local drawing = ESP.Drawings[key] or CreateText(); ESP.Drawings[key] = drawing
-                local tracer = Toggles.FreezePodTracers.Value and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
-                local hl = Toggles.OutlineFreezePod.Value and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
-                local color = rainbow and GetRainbow() or Options.FreezePodESPColor.Value
+                local tracer = Toggles.FreezePodTracers and Toggles.FreezePodTracers.Value and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
+                local hl = Toggles.OutlineFreezePod and Toggles.OutlineFreezePod.Value and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
+                
+                local color = rainbow and GetRainbow() or (Options.FreezePodESPColor and Options.FreezePodESPColor.Value or Color3.fromRGB(0,255,255))
                 local pos = obj:GetPivot().Position + Vector3.new(0, 5, 0)
                 local screenPos, onScreen = cam:WorldToViewportPoint(pos)
-
+                
                 if onScreen then
                     local dist = math.floor((camPos - pos).Magnitude)
                     drawing.Text = showDist and ("Freeze Pod #"..i.." ["..dist.." studs]") or ("Freeze Pod #"..i)
                     drawing.Position = Vector2.new(screenPos.X, screenPos.Y)
                     drawing.Color = color
                     drawing.Visible = true
-
+                    
                     if tracer then
                         tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
                         tracer.To = Vector2.new(screenPos.X, screenPos.Y)
@@ -631,7 +669,7 @@ local function UpdateESP()
                         tracer.Visible = true
                         ESP.Tracers[key] = tracer
                     end
-
+                    
                     if hl then
                         hl.Parent = obj
                         hl.FillColor = color
@@ -654,30 +692,31 @@ local function UpdateESP()
             end
         end
     end
-
+    
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
             local isBeast = player.Character:FindFirstChild("Hammer") ~= nil
             local key = (isBeast and "Beast_" or "Surv_") .. player.UserId
-            local shouldShow = (isBeast and Toggles.BeastESP.Value) or (not isBeast and Toggles.SurvivorESP.Value)
-            local color = rainbow and GetRainbow() or (isBeast and Options.BeastESPColor.Value or Options.SurvivorESPColor.Value)
-
+            local shouldShow = (isBeast and Toggles.BeastESP and Toggles.BeastESP.Value) or (not isBeast and Toggles.SurvivorESP and Toggles.SurvivorESP.Value)
+            local color = rainbow and GetRainbow() or (isBeast and (Options.BeastESPColor and Options.BeastESPColor.Value or Color3.fromRGB(255,0,0)) or (Options.SurvivorESPColor and Options.SurvivorESPColor.Value or Color3.fromRGB(0,100,0)))
+            
             if shouldShow then
                 local root = player.Character:FindFirstChild("HumanoidRootPart")
                 if root then
                     local pos = root.Position + Vector3.new(0, 3.5, 0)
                     local screenPos, onScreen = cam:WorldToViewportPoint(pos)
-
+                    
                     if onScreen then
                         local drawing = ESP.Drawings[key] or CreateText(); ESP.Drawings[key] = drawing
-                        local tracer = (isBeast and Toggles.BeastTracers.Value or Toggles.SurvivorTracers.Value) and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
-                        local hl = (isBeast and Toggles.OutlineBeast.Value or Toggles.OutlineSurvivors.Value) and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
+                        local tracer = (isBeast and Toggles.BeastTracers and Toggles.BeastTracers.Value or Toggles.SurvivorTracers and Toggles.SurvivorTracers.Value) and (ESP.Tracers[key] or CreateLine()) or ESP.Tracers[key]
+                        local hl = (isBeast and Toggles.OutlineBeast and Toggles.OutlineBeast.Value or Toggles.OutlineSurvivors and Toggles.OutlineSurvivors.Value) and (ESP.Highlights[key] or CreateHighlight()) or ESP.Highlights[key]
+                        
                         local dist = math.floor((camPos - pos).Magnitude)
                         drawing.Text = showDist and (player.DisplayName.." ["..(isBeast and "BEAST" or "SURV").."] ["..dist.." studs]") or (player.DisplayName.." ["..(isBeast and "BEAST" or "SURV").."]")
                         drawing.Position = Vector2.new(screenPos.X, screenPos.Y)
                         drawing.Color = color
                         drawing.Visible = true
-
+                        
                         if tracer then
                             tracer.From = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y)
                             tracer.To = Vector2.new(screenPos.X, screenPos.Y)
@@ -685,7 +724,7 @@ local function UpdateESP()
                             tracer.Visible = true
                             ESP.Tracers[key] = tracer
                         end
-
+                        
                         if hl then
                             hl.Parent = player.Character
                             hl.FillColor = color
@@ -715,27 +754,26 @@ table.insert(ESP.Connections, RunService.Heartbeat:Connect(UpdateESP))
 
 task.spawn(function()
     while task.wait(3) do
-        if Toggles.ComputerESP.Value then ScanComputers() end
-        if Toggles.FreezePodESP.Value then ScanPods() end
+        if Toggles.ComputerESP and Toggles.ComputerESP.Value then ScanComputers() end
+        if Toggles.FreezePodESP and Toggles.FreezePodESP.Value then ScanPods() end
     end
 end)
 
--- [UPDATED] Fullbright & NoFog now update every frame via Heartbeat
 RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
-            hum.WalkSpeed = Options.WalkSpeed.Value
-            hum.JumpPower = Options.JumpPower.Value
+            hum.WalkSpeed = Options.WalkSpeed and Options.WalkSpeed.Value or 16
+            hum.JumpPower = Options.JumpPower and Options.JumpPower.Value or 50
         end
     end
-    LocalPlayer.CameraMaxZoomDistance = Options.MaxZoom.Value
-    workspace.CurrentCamera.FieldOfView = Options.FOVSlider.Value
-
-    -- Fullbright (every frame)
-    if Toggles.Fullbright.Value then
-        local color = Options.FullbrightColor.Value
+    
+    LocalPlayer.CameraMaxZoomDistance = Options.MaxZoom and Options.MaxZoom.Value or 128
+    workspace.CurrentCamera.FieldOfView = Options.FOVSlider and Options.FOVSlider.Value or 80
+    
+    if Toggles.Fullbright and Toggles.Fullbright.Value then
+        local color = Options.FullbrightColor and Options.FullbrightColor.Value or Color3.fromRGB(255,255,255)
         Lighting.Ambient = color
         Lighting.ColorShift_Bottom = color
         Lighting.ColorShift_Top = color
@@ -752,9 +790,8 @@ RunService.Heartbeat:Connect(function()
         Lighting.ClockTime = 14
         Lighting.GlobalShadows = true
     end
-
-    -- NoFog (every frame)
-    if Toggles.NoFog.Value then
+    
+    if Toggles.NoFog and Toggles.NoFog.Value then
         Lighting.FogEnd = 100000
         Lighting.FogStart = 0
         if Lighting:FindFirstChild("Atmosphere") then
@@ -768,18 +805,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-
-Library:OnUnload(function()
-    ClearAllESP()
-    for _, c in pairs(ESP.Connections) do if c.Connected then c:Disconnect() end end
-    if noClipConn then noClipConn:Disconnect() end
-    if bunnyHopConn then bunnyHopConn:Disconnect() end
-end)
-
--- [REST OF THE SCRIPT - Beast POV, RGB, etc. unchanged for brevity]
--- (Everything below this point is the same as your original script)
--- Just to keep the response clean, I'm not repeating the 1000+ lines below.
--- But in the real script, they remain exactly as before.
 
 local FeaturesGB = Tabs.Features:AddLeftGroupbox("Features", "zap")
 
@@ -798,7 +823,6 @@ FeaturesGB:AddSlider("BeastPOVSize", {
 })
 FeaturesGB:AddDivider()
 FeaturesGB:AddToggle("NoPCError", {Text = "No PC Error", Default = false})
-
 FeaturesGB:AddLabel("All Credits Of This Feature <font color=\"rgb(0,255,0)\"><u>Anti PC Error</u></font> Goes To <font color=\"rgb(0,255,0)\"><b>Imperial - Yarhm</b></font>", true)
 
 FeaturesGB:AddButton({
@@ -827,7 +851,7 @@ task.spawn(function()
     OldNameCall = hookmetamethod(game, "__namecall", function(Self, ...)
         local Args = {...}
         local NamecallMethod = getnamecallmethod()
-        if NamecallMethod == "FireServer" and Args[1] == "SetPlayerMinigameResult" and Toggles.NoPCError.Value then
+        if NamecallMethod == "FireServer" and Args[1] == "SetPlayerMinigameResult" and Toggles.NoPCError and Toggles.NoPCError.Value then
             Args[2] = true
         end
         return OldNameCall(Self, unpack(Args))
@@ -877,7 +901,7 @@ local function CreateBeastPOVUI()
     BeastPOVGui.ResetOnSpawn = false
     BeastPOVGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     BeastPOVGui.Parent = game:GetService("CoreGui")
-
+    
     BeastPOVFrame = Instance.new("Frame")
     BeastPOVFrame.Name = "BeastPOVFrame"
     BeastPOVFrame.Size = UDim2.new(0, 250, 0, 250)
@@ -887,11 +911,11 @@ local function CreateBeastPOVUI()
     BeastPOVFrame.BorderSizePixel = 3
     BeastPOVFrame.BorderColor3 = Color3.fromRGB(255, 0, 0)
     BeastPOVFrame.Parent = BeastPOVGui
-
+    
     local UICorner = Instance.new("UICorner")
     UICorner.CornerRadius = UDim.new(0, 8)
     UICorner.Parent = BeastPOVFrame
-
+    
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Name = "TitleLabel"
     TitleLabel.Size = UDim2.new(1, 0, 0, 25)
@@ -904,11 +928,11 @@ local function CreateBeastPOVUI()
     TitleLabel.TextSize = 14
     TitleLabel.Font = Enum.Font.GothamBold
     TitleLabel.Parent = BeastPOVFrame
-
+    
     local TitleCorner = Instance.new("UICorner")
     TitleCorner.CornerRadius = UDim.new(0, 8)
     TitleCorner.Parent = TitleLabel
-
+    
     BeastViewport = Instance.new("ViewportFrame")
     BeastViewport.Name = "BeastViewport"
     BeastViewport.Size = UDim2.new(1, -10, 1, -35)
@@ -917,11 +941,11 @@ local function CreateBeastPOVUI()
     BeastViewport.BackgroundTransparency = 0
     BeastViewport.BorderSizePixel = 0
     BeastViewport.Parent = BeastPOVFrame
-
+    
     local ViewportCorner = Instance.new("UICorner")
     ViewportCorner.CornerRadius = UDim.new(0, 6)
     ViewportCorner.Parent = BeastViewport
-
+    
     BeastCamera = Instance.new("Camera")
     BeastCamera.Parent = BeastViewport
     BeastViewport.CurrentCamera = BeastCamera
@@ -966,7 +990,7 @@ local function UpdateBeastPOV()
         LastBeastPlayer = nil
         return
     end
-
+    
     local beastPlayer = GetBeastPlayer()
     
     if not beastPlayer or not beastPlayer.Character then
@@ -977,20 +1001,20 @@ local function UpdateBeastPOV()
         LastBeastPlayer = nil
         return
     end
-
+    
     if not BeastPOVGui then
         CreateBeastPOVUI()
     end
-
+    
     if beastPlayer ~= LastBeastPlayer then
         CreateBeastClone(beastPlayer.Character)
         LastBeastPlayer = beastPlayer
     end
-
+    
     if not BeastCharClone or BeastCharClone.Parent == nil then
         CreateBeastClone(beastPlayer.Character)
     end
-
+    
     local beastHead = beastPlayer.Character:FindFirstChild("Head")
     if beastHead and BeastCamera and BeastCharClone then
         pcall(function()
@@ -1006,9 +1030,11 @@ local function UpdateBeastPOV()
             end
         end)
     end
-
+    
     if BeastPOVFrame and Options.BeastPOVSize and Options.BeastPOVPlacement then
-        local size = Options.BeastPOVSize.Value * 50
+        -- <CHANGE> Added safe default for BeastPOVSize with nil check
+        local sizeValue = Options.BeastPOVSize.Value or 5
+        local size = sizeValue * 50
         BeastPOVFrame.Size = UDim2.new(0, size, 0, size)
         BeastPOVFrame.Position = PlacementPositions[Options.BeastPOVPlacement.Value or "Upper Left Corner"]
         BeastPOVFrame.Visible = true
@@ -1048,18 +1074,6 @@ Players.PlayerRemoving:Connect(function(player)
     end
 end)
 
-Library:OnUnload(function()
-    if BeastPOVConnection then
-        BeastPOVConnection:Disconnect()
-        BeastPOVConnection = nil
-    end
-    CleanupBeastClone()
-    if BeastPOVGui then
-        pcall(function() BeastPOVGui:Destroy() end)
-        BeastPOVGui = nil
-    end
-end)
-
 local FunMiscGB = Tabs.Features:AddRightGroupbox("Fun & Misc", "confetti_ball")
 
 FunMiscGB:AddToggle("RGBAsync", {Text = "RGB ASync", Default = false})
@@ -1074,17 +1088,15 @@ FunMiscGB:AddDropdown("RGBMethod", {
     Values = {"HSV", "RGB"},
     Default = 1,
 })
-
 FunMiscGB:AddDivider()
-
 FunMiscGB:AddButton("Reset", function()
-    Toggles.RGBAsync:SetValue(false)
-    Toggles.RGBHammer:SetValue(false)
-    Toggles.RGBLight:SetValue(false)
-    Options.RGBAsyncSpeed:SetValue(5)
-    Options.RGBHammerSpeed:SetValue(5)
-    Options.RGBLightSpeed:SetValue(5)
-    Options.RGBMethod:SetValue("HSV")
+    if Toggles.RGBAsync then Toggles.RGBAsync:SetValue(false) end
+    if Toggles.RGBHammer then Toggles.RGBHammer:SetValue(false) end
+    if Toggles.RGBLight then Toggles.RGBLight:SetValue(false) end
+    if Options.RGBAsyncSpeed then Options.RGBAsyncSpeed:SetValue(5) end
+    if Options.RGBHammerSpeed then Options.RGBHammerSpeed:SetValue(5) end
+    if Options.RGBLightSpeed then Options.RGBLightSpeed:SetValue(5) end
+    if Options.RGBMethod then Options.RGBMethod:SetValue("HSV") end
 end)
 
 FunMiscGB:AddButton("Rejoin", function()
@@ -1099,10 +1111,14 @@ local RGB = {
 }
 
 local function GetRGBColor(method, speed)
-    if method == "HSV" then
-        return Color3.fromHSV((tick() * speed / 10) % 1, 1, 1)
+    -- <CHANGE> Added nil checks for method and speed parameters
+    local rgbMethod = method or "HSV"
+    local rgbSpeed = speed or 5
+    
+    if rgbMethod == "HSV" then
+        return Color3.fromHSV((tick() * rgbSpeed / 10) % 1, 1, 1)
     else
-        local time = tick() * speed
+        local time = tick() * rgbSpeed
         return Color3.fromRGB(
             127 + 127 * math.sin(time),
             127 + 127 * math.sin(time + 2),
@@ -1114,8 +1130,8 @@ end
 local function UpdateRGB()
     local char = LocalPlayer.Character
     if not char then return end
-
-    if Toggles.RGBHammer.Value then
+    
+    if Toggles.RGBHammer and Toggles.RGBHammer.Value then
         local hammer = char:FindFirstChild("Hammer")
         if hammer then
             if not RGB.HammerHighlight then
@@ -1124,9 +1140,11 @@ local function UpdateRGB()
                 RGB.HammerHighlight.OutlineTransparency = 0
                 RGB.HammerHighlight.Parent = hammer
             end
+            
             if tick() - RGB.LastHammerUpdate >= 0.05 then
-                local speed = Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value or Options.RGBHammerSpeed.Value
-                local color = GetRGBColor(Options.RGBMethod.Value, speed)
+                local speed = (Toggles.RGBAsync and Toggles.RGBAsync.Value and Options.RGBAsyncSpeed and Options.RGBAsyncSpeed.Value) or (Options.RGBHammerSpeed and Options.RGBHammerSpeed.Value) or 5
+                local method = Options.RGBMethod and Options.RGBMethod.Value or "HSV"
+                local color = GetRGBColor(method, speed)
                 RGB.HammerHighlight.FillColor = color
                 RGB.HammerHighlight.OutlineColor = color
                 RGB.LastHammerUpdate = tick()
@@ -1138,8 +1156,8 @@ local function UpdateRGB()
             RGB.HammerHighlight = nil
         end
     end
-
-    if Toggles.RGBLight.Value then
+    
+    if Toggles.RGBLight and Toggles.RGBLight.Value then
         local gemstone = workspace:FindFirstChild(LocalPlayer.Name) and workspace[LocalPlayer.Name]:FindFirstChild("Gemstone")
         if gemstone then
             local handle = gemstone:FindFirstChild("Handle")
@@ -1147,9 +1165,11 @@ local function UpdateRGB()
                 local light = handle:FindFirstChild("PointLight") or Instance.new("PointLight", handle)
                 light.Brightness = 3
                 light.Range = 15
+                
                 if tick() - RGB.LastLightUpdate >= 0.05 then
-                    local speed = Toggles.RGBAsync.Value and Options.RGBAsyncSpeed.Value or Options.RGBLightSpeed.Value
-                    light.Color = GetRGBColor(Options.RGBMethod.Value, speed)
+                    local speed = (Toggles.RGBAsync and Toggles.RGBAsync.Value and Options.RGBAsyncSpeed and Options.RGBAsyncSpeed.Value) or (Options.RGBLightSpeed and Options.RGBLightSpeed.Value) or 5
+                    local method = Options.RGBMethod and Options.RGBMethod.Value or "HSV"
+                    light.Color = GetRGBColor(method, speed)
                     RGB.LastLightUpdate = tick()
                 end
             end
@@ -1170,22 +1190,27 @@ RunService.Heartbeat:Connect(UpdateRGB)
 
 task.spawn(function()
     while task.wait(0.1) do
-        if Toggles.RGBAsync.Value and Toggles.RainbowESPs.Value then
-            local speed = Options.RGBAsyncSpeed.Value
+        if Toggles.RGBAsync and Toggles.RGBAsync.Value and Toggles.RainbowESPs and Toggles.RainbowESPs.Value then
+            local speed = Options.RGBAsyncSpeed and Options.RGBAsyncSpeed.Value or 5
+            local method = Options.RGBMethod and Options.RGBMethod.Value or "HSV"
+            
             for _, d in pairs(ESP.Drawings) do
                 if d and d.__OBJECT_EXISTS and d.Visible then
-                    d.Color = GetRGBColor(Options.RGBMethod.Value, speed)
+                    d.Color = GetRGBColor(method, speed)
                 end
             end
+            
             for _, l in pairs(ESP.Tracers) do
                 if l and l.Visible then
-                    l.Color = GetRGBColor(Options.RGBMethod.Value, speed)
+                    l.Color = GetRGBColor(method, speed)
                 end
             end
+            
             for _, h in pairs(ESP.Highlights) do
                 if h and h.Enabled then
-                    h.FillColor = GetRGBColor(Options.RGBMethod.Value, speed)
-                    h.OutlineColor = GetRGBColor(Options.RGBMethod.Value, speed)
+                    local color = GetRGBColor(method, speed)
+                    h.FillColor = color
+                    h.OutlineColor = color
                 end
             end
         end
@@ -1212,3 +1237,236 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
 SaveManager:LoadAutoloadConfig()
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomButtonGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999999999
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = gethui and gethui() or game:GetService("CoreGui")
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HapticService = game:GetService("HapticService")
+
+local button = Instance.new("ImageButton")
+button.Name = "CustomButton"
+button.Image = "rbxassetid://130346803512317"
+button.BackgroundTransparency = 1
+button.Position = UDim2.new(0.5, 0, 0, 50)
+button.AnchorPoint = Vector2.new(0.5, 0)
+button.Size = UDim2.new(0, 60, 0, 60)
+button.ClipsDescendants = true
+button.ZIndex = 999999999
+button.Visible = false
+button.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 6)
+uiCorner.Parent = button
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 2
+uiStroke.Parent = button
+
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 140, 100)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 90, 65))
+}
+uiGradient.Rotation = 0
+uiGradient.Parent = uiStroke
+
+local function triggerSmallHaptic()
+	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+		local success, supported = pcall(function()
+			return HapticService:IsMotorSupported(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small)
+		end)
+		
+		if success and supported then
+			HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.3)
+			task.delay(0.06, function()
+				HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
+			end)
+		end
+	end
+end
+
+local currentInput = nil
+local dragStartPos = nil
+local isDragging = false
+local dragThreshold = 8
+local clickStartTime = 0
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if currentInput then return end
+		currentInput = input
+		dragStartPos = input.Position
+		isDragging = false
+		clickStartTime = tick()
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == currentInput and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStartPos
+		
+		if delta.Magnitude > dragThreshold and not isDragging then
+			isDragging = true
+		end
+		
+		if isDragging then
+			local newPos = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)
+			TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = newPos}):Play()
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input == currentInput then
+		local clickDuration = tick() - clickStartTime
+		
+		if not isDragging and clickDuration < 0.3 then
+			Library:Toggle()
+			triggerSmallHaptic()
+			
+			local pos = input.Position
+			local absPos = button.AbsolutePosition
+			local absSize = button.AbsoluteSize
+			-- <CHANGE> Added safe division with nil check for button size
+			local relX = absSize.X > 0 and (pos.X - absPos.X) / absSize.X or 0.5
+			local relY = absSize.Y > 0 and (pos.Y - absPos.Y) / absSize.Y or 0.5
+			
+			local wave = Instance.new("ImageLabel")
+			wave.Size = UDim2.new(0, 0, 0, 0)
+			wave.Position = UDim2.new(relX, 0, relY, 0)
+			wave.AnchorPoint = Vector2.new(0.5, 0.5)
+			wave.BackgroundTransparency = 1
+			wave.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+			wave.ImageColor3 = Color3.fromRGB(255, 255, 255)
+			wave.ImageTransparency = 0.3
+			wave.ZIndex = 999999999
+			wave.Parent = button
+			
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(1, 0)
+			corner.Parent = wave
+			
+			local tween = TweenService:Create(wave, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
+				Size = UDim2.new(2.5, 0, 2.5, 0),
+				ImageTransparency = 1
+			})
+			tween:Play()
+			task.delay(0.5, function() wave:Destroy() end)
+		end
+		
+		currentInput = nil
+		isDragging = false
+	end
+end)
+
+button.MouseEnter:Connect(function()
+	TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)
+	}):Play()
+end)
+
+button.MouseLeave:Connect(function()
+	local cam = workspace.CurrentCamera
+	if not cam then return end
+	
+	local viewportSize = cam.ViewportSize
+	local base = math.clamp(math.min(viewportSize.X, viewportSize.Y) * 0.08, 50, 80)
+	-- <CHANGE> Added safe division for toggleSize with nil check and default value
+	local scale = (toggleSize or 100) / 100
+	
+	TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, base * scale, 0, base * scale)
+	}):Play()
+end)
+
+local function updateButtonSize()
+	local cam = workspace.CurrentCamera
+	if not cam then return end
+	
+	local viewportSize = cam.ViewportSize
+	if not viewportSize then return end
+	
+	-- <CHANGE> Added safe viewport size handling with nil checks
+	local minViewport = math.min(viewportSize.X or 800, viewportSize.Y or 600)
+	local base = math.clamp(minViewport * 0.08, 50, 80)
+	-- <CHANGE> Added safe division with nil check for toggleSize
+	local scale = (toggleSize or 100) / 100
+	button.Size = UDim2.new(0, base * scale, 0, base * scale)
+end
+
+local showToggle = isfile("showtoggle.unx")
+-- <CHANGE> Added safe file reading with error handling for toggleSize
+local toggleSize = 100
+if isfile("togglesize.unx") then
+	local success, sizeStr = pcall(function()
+		return readfile("togglesize.unx")
+	end)
+	if success and sizeStr then
+		toggleSize = tonumber(sizeStr) or 100
+	end
+end
+
+if showToggle then
+	button.Visible = true
+end
+
+updateButtonSize()
+
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize)
+
+MenuGroup:AddToggle("CustomToggle", { 
+	Text = "Custom Toggle", 
+	Default = showToggle, 
+	Callback = function(v) 
+		if v then
+			writefile("showtoggle.unx", "")
+		else
+			if isfile("showtoggle.unx") then
+				delfile("showtoggle.unx")
+			end
+		end
+		if button then button.Visible = v end
+	end 
+})
+
+MenuGroup:AddSlider("CustomToggleSize", { 
+	Text = "Custom Toggle Size (%)", 
+	Default = toggleSize, 
+	Min = 50, 
+	Max = 200, 
+	Rounding = 0, 
+	Callback = function(v)
+		toggleSize = v
+		writefile("togglesize.unx", tostring(v))
+		updateButtonSize()
+	end 
+})
+
+Library:OnUnload(function()
+	ClearAllESP()
+	for _, c in pairs(ESP.Connections) do if c.Connected then c:Disconnect() end end
+	if noClipConn then noClipConn:Disconnect() end
+	if bunnyHopConn then bunnyHopConn:Disconnect() end
+	if BeastPOVConnection then
+		BeastPOVConnection:Disconnect()
+		BeastPOVConnection = nil
+	end
+	CleanupBeastClone()
+	if BeastPOVGui then
+		pcall(function() BeastPOVGui:Destroy() end)
+		BeastPOVGui = nil
+	end
+	if screenGui then
+		screenGui:Destroy()
+	end
+	game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+end)
