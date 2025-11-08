@@ -1586,3 +1586,13 @@ workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateB
 if showToggle then
 	button.Visible = true
 end
+
+local function isPCPlatform()
+    return not (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled)
+end
+
+if isPCPlatform() then
+    button.Visible = showToggle
+else
+    button.Visible = false
+end
