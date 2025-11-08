@@ -1,5 +1,3 @@
--- Laura + Rego
-
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/addons/SaveManager.lua"))()
@@ -12,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
 	Title = "UNXHub",
-	Footer = "Version: "..getgenv().unxshared.version..", Game: "..getgenv().unxshared.gamename,
+	Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown"),
 	Icon = 123333102279908,
 	NotifySide = "Right",
 	ShowCustomCursor = true,
@@ -1006,7 +1004,9 @@ end)
 
 local statusGroup = Tabs.Main:AddRightGroupbox("Status", "info")
 local healthLabel = statusGroup:AddLabel("Health: 0")
-local versionLabel = statusGroup:AddLabel("Version: "..getgenv().unxshared.version)
+local versionLabel = statusGroup:AddLabel(
+	"Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown")
+)
 local fpsLabel = statusGroup:AddLabel("FPS: 0")
 local pingLabel = statusGroup:AddLabel("Ping: 0")
 
@@ -1302,6 +1302,45 @@ menugroup:AddCheckbox("OptOutLog", {
 	end,
 })
 
+menugroup:AddDivider()
+local showToggle = isfile("showtoggle.unx")
+local toggleSize = 100
+if isfile("togglesize.unx") then
+	local sizeStr = readfile("togglesize.unx")
+	toggleSize = tonumber(sizeStr) or 100
+end
+
+menugroup:AddToggle("CustomToggle", { 
+	Text = "Custom Toggle", 
+	Default = showToggle, 
+	Callback = function(v) 
+		if v then
+			writefile("showtoggle.unx", "")
+		else
+			if isfile("showtoggle.unx") then
+				delfile("showtoggle.unx")
+			end
+		end
+		if button then button.Visible = v end
+	end 
+})
+
+menugroup:AddSlider("CustomToggleSize", { 
+	Text = "Custom Toggle Size (%)", 
+	Default = toggleSize, 
+	Min = 50, 
+	Max = 200, 
+	Rounding = 0, 
+	Callback = function(v)
+		writefile("togglesize.unx", tostring(v))
+		local scale = v / 100
+		if button then
+			local base = math.clamp(math.min(workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y) * 0.08, 50, 80)
+			button.Size = UDim2.new(0, base * scale, 0, base * scale)
+		end
+	end 
+})
+
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
@@ -1376,7 +1415,7 @@ RunService.RenderStepped:Connect(function(dt)
 		for _, h in pairs(activehighlights) do
 			if h then
 				h.OutlineColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinecolor
-				h.FillColor = espconfig.rainbow_outline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
+				h.FillColor = espconfig.rainbowoutline and (rgbAsyncEnabled and getSyncRainbowColor() or getrainbowcolor()) or espconfig.outlinefillcolor
 			end
 		end
 	end
@@ -1393,3 +1432,157 @@ task.spawn(function()
 end)
 
 Library.ToggleKeybind = Options.MenuKeybind
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomButtonGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 999999999
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = gethui and gethui() or game:GetService("CoreGui")
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HapticService = game:GetService("HapticService")
+
+local button = Instance.new("ImageButton")
+button.Name = "CustomButton"
+button.Image = "rbxassetid://130346803512317"
+button.BackgroundTransparency = 1
+button.Position = UDim2.new(0.5, 0, 0, 50)
+button.AnchorPoint = Vector2.new(0.5, 0)
+button.Size = UDim2.new(0, 60, 0, 60)
+button.ClipsDescendants = true
+button.ZIndex = 999999999
+button.Visible = showToggle
+button.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 6)
+uiCorner.Parent = button
+
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Thickness = 2
+uiStroke.Parent = button
+
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(180, 140, 100)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 90, 65))
+}
+uiGradient.Rotation = 0
+uiGradient.Parent = uiStroke
+
+local function triggerSmallHaptic()
+	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+		local success, supported = pcall(function()
+			return HapticService:IsMotorSupported(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small)
+		end)
+		if success and supported then
+			HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0.3)
+			task.delay(0.06, function()
+				HapticService:SetMotor(Enum.UserInputType.Gamepad1, Enum.VibrationMotor.Small, 0)
+			end)
+		end
+	end
+end
+
+local currentInput = nil
+local dragStartPos = nil
+local isDragging = false
+local dragThreshold = 8
+local clickStartTime = 0
+
+button.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		if currentInput then return end
+		currentInput = input
+		dragStartPos = input.Position
+		isDragging = false
+		clickStartTime = tick()
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == currentInput and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStartPos
+		if delta.Magnitude > dragThreshold and not isDragging then
+			isDragging = true
+		end
+		if isDragging then
+			local newPos = UDim2.new(0, dragStartPos.X + delta.X, 0, dragStartPos.Y + delta.Y)
+			TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {Position = newPos}):Play()
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input == currentInput then
+		local clickDuration = tick() - clickStartTime
+		if not isDragging and clickDuration < 0.3 then
+			Library:Toggle()
+			triggerSmallHaptic()
+			local pos = input.Position
+			local absPos = button.AbsolutePosition
+			local absSize = button.AbsoluteSize
+			local relX = (pos.X - absPos.X) / absSize.X
+			local relY = (pos.Y - absPos.Y) / absSize.Y
+			local wave = Instance.new("ImageLabel")
+			wave.Size = UDim2.new(0, 0, 0, 0)
+			wave.Position = UDim2.new(relX, 0, relY, 0)
+			wave.AnchorPoint = Vector2.new(0.5, 0.5)
+			wave.BackgroundTransparency = 1
+			wave.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+			wave.ImageColor3 = Color3.fromRGB(255, 255, 255)
+			wave.ImageTransparency = 0.3
+			wave.ZIndex = 999999999
+			wave.Parent = button
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(1, 0)
+			corner.Parent = wave
+			local tween = TweenService:Create(wave, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {
+				Size = UDim2.new(2.5, 0, 2.5, 0),
+				ImageTransparency = 1
+			})
+			tween:Play()
+			task.delay(0.5, function() wave:Destroy() end)
+		end
+		currentInput = nil
+		isDragging = false
+	end
+end)
+
+button.MouseEnter:Connect(function()
+	TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)
+	}):Play()
+end)
+
+button.MouseEnter:Connect(function()
+	TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, button.Size.X.Offset * 1.08, 0, button.Size.Y.Offset * 1.08)
+	}):Play()
+end)
+
+button.MouseLeave:Connect(function()
+	local size = math.clamp(math.min(workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y) * 0.08, 50, 80)
+	local scale = toggleSize / 100
+	TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+		Size = UDim2.new(0, size * scale, 0, size * scale)
+	}):Play()
+end)
+
+local function updateButtonSize()
+	local base = math.clamp(math.min(workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y) * 0.08, 50, 80)
+	local scale = toggleSize / 100
+	button.Size = UDim2.new(0, base * scale, 0, base * scale)
+end
+
+updateButtonSize()
+
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(updateButtonSize)
+
+if showToggle then
+	button.Visible = true
+end
