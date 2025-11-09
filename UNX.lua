@@ -1,5 +1,14 @@
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
+if not isfile("UsedOneTime.unx") then
+writefile("UsedOneTime.unx","1")
+elseif not isfile("AlreadyRated.unx") then
+loadstring(game:HttpGet(
+"https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Rating.lua"
+))()
+writefile("AlreadyRated.unx","1")
+end
+
 if getgenv().unxshared and getgenv().unxshared.isloaded == true then
 warn("UNXHub is already loaded. Skipping initialization.")
 return
@@ -290,6 +299,7 @@ task.wait(0.1)
 s("Creating global variables...")
 task.wait(0.05)
 getgenv().unxshared={version="2.2.2 (Patch 2)",gamename=az:GetProductInfo(game.PlaceId).Name,issupported=false,playername=d.Name,playerid=d.UserId,isloaded=false,devnote="Made with 💖 by Gato"}
+loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 
 s("Player: "..d.Name.." (ID: "..d.UserId..")")
 task.wait(0.05)
