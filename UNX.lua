@@ -1,3 +1,8 @@
+if not isfolder("unxhub") then makefolder("unxhub") end
+if not isfolder("unxhub/themes") then makefolder("unxhub/themes") end
+if not isfile("unxhub/themes/default.txt") then writefile("unxhub/themes/default.txt", "UNXIsh") end
+if not isfile("unxhub/themes/UNXIsh.json") then writefile("unxhub/themes/UNXIsh.json", '{"MainColor":"131218","FontFace":"Code","AccentColor":"a970ff","OutlineColor":"262434","BackgroundColor":"0b0b0d","FontColor":"e8e6f2"}') end
+
 loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Inv.lua",true))()
 
 if not isfile("UsedOneTime.unx") then
