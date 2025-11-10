@@ -27,8 +27,6 @@ local Tabs = {
 	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
 
-local debugmode = isfile("debugtrue")
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -169,9 +167,6 @@ local function stopanimation()
 			for _, track in pairs(humanoid:GetPlayingAnimationTracks()) do
 				track:Stop()
 			end
-			if debugmode then
-				print("[DEBUG]: All animations stopped")
-			end
 		end
 	end
 end
@@ -185,14 +180,6 @@ local function getrainbowcolor()
 		lastupdate = currenttime
 	end
 	return Color3.fromHSV(rainbowhue, 1, 1)
-end
-
-local function getplayercolor(player)
-	if player.Team then
-		return player.TeamColor.Color
-	else
-		return Color3.new(1, 1, 1)
-	end
 end
 
 local function createesp(player)
@@ -279,8 +266,7 @@ local function applyhighlighttocharacter(player, character)
 end
 
 local function setupplayerhighlight(player)
-	local userid = player.UserId
-	playerconnections[userid] = playerconnections[userid] or {}
+	prev = playerconnections[player.UserId] or {}
 	
 	local function oncharacteradded(character)
 		local humanoid = character:WaitForChild("Humanoid")
@@ -289,24 +275,26 @@ local function setupplayerhighlight(player)
 			applyhighlighttocharacter(player, character)
 		end
 		
-		table.insert(playerconnections[userid], player:GetPropertyChangedSignal("TeamColor"):Connect(function()
-			local highlight = activehighlights[userid]
+		table.insert(prev, player:GetPropertyChangedSignal("TeamColor"):Connect(function()
+			local highlight = activehighlights[player.UserId]
 			if highlight then
 				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or (player.TeamColor and player.TeamColor.Color) or espconfig.outlinecolor
 			end
 		end))
 		
-		table.insert(playerconnections[userid], humanoid.Died:Connect(function()
+		table.insert(prev, humanoid.Died:Connect(function()
 			removehighlight(player)
 		end))
 	end
 	
 	local charaddedconn = player.CharacterAdded:Connect(oncharacteradded)
-	table.insert(playerconnections[userid], charaddedconn)
+	table.insert(prev, charaddedconn)
 	
 	if player.Character then
 		oncharacteradded(player.Character)
 	end
+	
+	playerconnections[player.UserId] = prev
 end
 
 function removehighlight(player)
@@ -558,21 +546,6 @@ local function setupantifling()
 				end
 			end)
 		end)
-		
-		antiflingconnections.CharacterAdded = {}
-		for _, player in pairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer then
-				antiflingconnections.CharacterAdded[player] = player.CharacterAdded:Connect(function(character)
-					if antiflingenabled then
-						for _, part in pairs(character:GetChildren()) do
-							if part:IsA("BasePart") then
-								part.CanCollide = false
-							end
-						end
-					end
-				end)
-			end
-		end
 	else
 		for _, player in pairs(Players:GetPlayers()) do
 			if player ~= LocalPlayer and player.Character then
@@ -587,17 +560,14 @@ local function setupantifling()
 		for _, connection in pairs(antiflingconnections) do
 			if typeof(connection) == "RBXScriptConnection" then
 				connection:Disconnect()
-			elseif typeof(connection) == "table" then
-				for _, conn in pairs(connection) do
-					conn:Disconnect()
-				end
+			elseif typeof(connection) == "thread" then
+				task.cancel(connection)
 			end
 		end
 		antiflingconnections = {}
 	end
 end
 
--- Added function to apply character properties
 local function applycharacterproperties(character)
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid then
@@ -613,7 +583,6 @@ local currentwalkspeed = 16
 local currentjumppower = 50
 local currentgravity = 196.2
 
--- Modified WalkSpeed slider to apply immediately
 playergroup:AddSlider("WalkSpeed", {
 	Text = "WalkSpeed",
 	Default = 16,
@@ -622,14 +591,12 @@ playergroup:AddSlider("WalkSpeed", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentwalkspeed = Value
-		-- Apply immediately to character
 		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 			LocalPlayer.Character.Humanoid.WalkSpeed = Value
 		end
 	end,
 })
 
--- Modified JumpPower slider to apply immediately
 playergroup:AddSlider("JumpPower", {
 	Text = "JumpPower",
 	Default = 50,
@@ -638,14 +605,12 @@ playergroup:AddSlider("JumpPower", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentjumppower = Value
-		-- Apply immediately to character
 		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
 			LocalPlayer.Character.Humanoid.JumpPower = Value
 		end
 	end,
 })
 
--- Modified Gravity slider to apply immediately
 playergroup:AddSlider("Gravity", {
 	Text = "Gravity",
 	Default = 196.2,
@@ -654,7 +619,6 @@ playergroup:AddSlider("Gravity", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentgravity = Value
-		-- Apply immediately to workspace
 		workspace.Gravity = Value
 	end,
 })
@@ -826,7 +790,6 @@ playergroup:AddCheckbox("InfiniteJump", {
 		Toggles.InfiniteJump:SetValue(not Toggles.InfiniteJump.Value)
 	end,
 })
-
 
 local flygroup = Tabs.Main:AddRightGroupbox("Fly", "plane")
 
@@ -1042,9 +1005,6 @@ flygroup:AddToggle("FlyToggle", {
 	Text = "Fly",
 	Default = false,
 	Callback = function(Value)
-		if debugmode then
-			print("[DEBUG]: Fly Toggle " .. (Value and "On" or "Off"))
-		end
 		if Value then
 			startFlying()
 		else
@@ -1066,9 +1026,6 @@ flygroup:AddSlider("FlySpeed", {
 	Callback = function(Value)
 		speeds = Value
 		flySpeed = Value
-		if debugmode then
-			print("[DEBUG]: Fly Speed set to " .. Value)
-		end
 		if nowe == true then
 			tpwalking = false
 			for i = 1, speeds do
@@ -1088,7 +1045,6 @@ flygroup:AddSlider("FlySpeed", {
 	end,
 })
 
--- Modified CharacterAdded connection to apply properties and reset fly
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	wait(0.7)
 	nowe = false
@@ -1099,7 +1055,6 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
 			character.Animate.Disabled = false
 		end
 	end
-	-- Apply saved walkspeed, jumppower, and gravity
 	applycharacterproperties(character)
 end)
 
@@ -1490,9 +1445,6 @@ teleportgroup:AddButton({
 		if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
 			if Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
 				Players.LocalPlayer.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame
-				if debugmode then
-					print("[DEBUG]: Teleported to " .. selectedPlayer.Name)
-				end
 			end
 		end
 	end,
@@ -1765,7 +1717,10 @@ aimlockconfigtab:AddSlider("FOVSize", {
 
 aimlockconfigtab:AddSlider("FOVStrokeThickness", {
 	Text = "FOV Stroke Thickness",
-	Default = 0.1,
+	Default = 2,
+	Min = 0.1,
+	Max = 10,
+	Rounding = 0.1,
 	Callback = function(Value)
 		fovstrokethickness = Value
 		if fovstroke then
@@ -1787,9 +1742,6 @@ aimlockconfigtab:AddDropdown("IgnorePlayers", {
 		for player, isSelected in pairs(Value) do
 			if isSelected then
 				ignoredplayers[player.Name] = true
-				if debugmode then
-					print("[DEBUG]: Added " .. player.Name .. " to aimlock ignore list")
-				end
 			end
 		end
 	end,
@@ -1897,9 +1849,6 @@ animtab:AddDropdown("AnimationSelect", {
 	Text = "Select Animation",
 	Callback = function(Value)
 		selectedanimation = animationids[Value]
-		if debugmode then
-			print("[DEBUG]: Selected animation: " .. Value .. " (ID: " .. selectedanimation .. ")")
-		end
 	end,
 })
 
@@ -1910,15 +1859,9 @@ animtab:AddCheckbox("PlayAnimation", {
 		if Value then
 			if selectedanimation and selectedanimation ~= "" then
 				playanimation(selectedanimation)
-				if debugmode then
-					print("[DEBUG]: Playing animation: " .. selectedanimation)
-				end
 			end
 		else
 			stopanimation()
-			if debugmode then
-				print("[DEBUG]: Stopped animation via checkbox")
-			end
 		end
 	end,
 })
@@ -1929,9 +1872,6 @@ animtab:AddInput("CustomAnimID", {
 	Text = "Custom Animation ID",
 	Placeholder = "Enter animation ID...",
 	Callback = function(Value)
-		if debugmode then
-			print("[DEBUG]: Custom animation ID set to: " .. Value)
-		end
 	end,
 })
 
@@ -1943,20 +1883,11 @@ animtab:AddCheckbox("PlayCustomAnimation", {
 			local customID = Options.CustomAnimID.Value
 			if customID and customID ~= "" then
 				playanimation(customID)
-				if debugmode then
-					print("[DEBUG]: Playing custom animation: " .. customID)
-				end
 			else
 				Toggles.PlayCustomAnimation:SetValue(false)
-				if debugmode then
-					print("[DEBUG]: No custom animation ID provided")
-				end
 			end
 		else
 			stopanimation()
-			if debugmode then
-				print("[DEBUG]: Stopped custom animation via checkbox")
-			end
 		end
 	end,
 })
@@ -1966,9 +1897,6 @@ animconfigtab:AddCheckbox("LoopAnimation", {
 	Default = false,
 	Callback = function(Value)
 		loopanimation = Value
-		if debugmode then
-			print("[DEBUG]: Loop Animation set to: " .. tostring(Value))
-		end
 	end,
 })
 
@@ -2123,7 +2051,7 @@ musicconfigtab:AddCheckbox("LoopPlay", {
 	end,
 })
 
-local ExampleGroup = Tabs["Fun"]:AddLeftGroupbox("Example Songs","example-box")
+local ExampleGroup = Tabs["Fun"]:AddLeftGroupbox("Example Songs","music-note")
 local ExampleFolder = "unxhub/examples"
 
 if not isfolder("unxhub") then
@@ -2135,19 +2063,26 @@ if not isfolder(ExampleFolder) then
 end
 
 local ExampleSongs = {
-	["Life Goes On!"]=7608899217,["Feels"]=8879155640,["Gangster Paradise"]=6070263388,
-	["Faceoff – The Rock"]=7795812961,["Stay – Kid Laroi ft. Justin Bieber"]=9062549544,
-	["Toxic"]=1842652230,["SAD – X"]=7707736242,["Moskau"]=135055100,["Xo tour Lif3"]=7823128741,
-	["Tokyo Machine – Play"]=5410085763,["The Rolling Stones – Paint It, Black"]=6828176320,
-	["Koven – All for Nothing"]=7024143472,["Chicken Nugget Dreamland"]=9245561450,["Drake – God's Plan"]=1665926924,
-	["Maroon 5 – Moves Like Jagger"]=291895335,["Christopher Michael Walters – Everything"]=1837014514,
-	["One Piece"]=1838028562,["Changing World (A)"]=1842471943,["Deep And Dirty"]=1836785943,
-	["Knuckle"]=1842727209,["Portrait of You"]=7023435987,["Cyber Music"]=6911766512,
-	["Michael Jackson – Smooth Criminal"]=4883181281,["Bensley"]=5410082273,["Face Off"]=7795812961,
-	["Happy Music"]=1848239370,["Light It"]=1840006854,["I Want You To Be My Man"]=1839707917,
-	["Lovely Day"]=1839481371,["Hallelujah"]=1846627271,["Labor of Love"]=1843541645,
-	["Pushing Forward"]=1843528841,["Higher & Higher"]=1837256919,["Squid Game RLGL"]=7535587224,
-	["Busybody"]=1839986001,["Danyka"]=7024233823,["I See Colors"]=7023720291,["Lil Mosey"]=10460286916
+	["Life Goes On!"]=7608899217,
+	["Feels"]=8879155640,
+	["Gangster Paradise"]=6070263388,
+	["Faceoff – The Rock"]=7795812961,
+	["Stay – Kid Laroi"]=9062549544,
+	["Toxic"]=1842652230,
+	["SAD – X"]=7707736242,
+	["Moskau"]=135055100,
+	["Xo tour Lif3"]=7823128741,
+	["Tokyo Machine – Play"]=5410085763,
+	["Paint It, Black"]=6828176320,
+	["All for Nothing"]=7024143472,
+	["Chicken Nugget Dreamland"]=9245561450,
+	["God's Plan"]=1665926924,
+	["Moves Like Jagger"]=291895335,
+	["Everything"]=1837014514,
+	["One Piece"]=1838028562,
+	["Changing World"]=1842471943,
+	["Deep And Dirty"]=1836785943,
+	["Knuckle"]=1842727209
 }
 
 for name,id in pairs(ExampleSongs) do
@@ -2235,43 +2170,18 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 end)
 
 if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-	local humanoid = LocalPlayer.Character.Humanoid
-	humanoid.WalkSpeed = currentwalkspeed
-	humanoid.JumpPower = currentjumppower
-	workspace.Gravity = currentgravity
+    local humanoid = LocalPlayer.Character.Humanoid
+    humanoid.WalkSpeed = currentwalkspeed
+    humanoid.JumpPower = currentjumppower
+    workspace.Gravity = currentgravity
 end
 
--- Infinite Jump lel
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if infinitejumpenabled and input.KeyCode == Enum.KeyCode.Space and not gameProcessed then
-		local character = LocalPlayer.Character
-		if character and character:FindFirstChild("Humanoid") then
-			character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-		end
-	end
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    local hum = char:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = currentwalkspeed
+        hum.JumpPower = currentjumppower
+    end
+    workspace.Gravity = currentgravity
 end)
-
-UserInputService.InputBegan:Connect(function(input)
-	if input.KeyCode == Enum.KeyCode.F and Toggles.FlyToggle then
-		Toggles.FlyToggle:SetValue(not Toggles.FlyToggle.Value)
-	end
-end)
-
-Options.MenuKeybind:OnChanged(function()
-	Window:Toggle()
-end)
-
-SaveManager:LoadAutoloadConfig()
-Library:Notify({
-	Title = "UNXHub Loaded",
-	Description = "Welcome, " .. LocalPlayer.Name .. "! Use the menu to explore features.",
-	Time = 5,
-})
-
-Library:OnUnload(function()
-    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
-end)
-
-if debugmode then
-	print("[DEBUG]: UNXHub fully loaded!")
-end
