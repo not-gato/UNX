@@ -14,7 +14,7 @@ local Window = Library:CreateWindow({
 })
 
 Library:Notify({
-	Title = "Welcome To UNXHub " .. game.Players.LocalPlayer.Name .. "!",
+	Title = "Welcome To UNXHub " .. game:GetService("Players").LocalPlayer.Name .. "!",
 	Description = "Script loaded successfully",
 	Time = 5,
 })
@@ -597,12 +597,23 @@ local function setupantifling()
 	end
 end
 
+-- Added function to apply character properties
+local function applycharacterproperties(character)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if humanoid then
+		humanoid.WalkSpeed = currentwalkspeed
+		humanoid.JumpPower = currentjumppower
+	end
+	workspace.Gravity = currentgravity
+end
+
 local playergroup = Tabs.Main:AddLeftGroupbox("Player", "user")
 
 local currentwalkspeed = 16
 local currentjumppower = 50
 local currentgravity = 196.2
 
+-- Modified WalkSpeed slider to apply immediately
 playergroup:AddSlider("WalkSpeed", {
 	Text = "WalkSpeed",
 	Default = 16,
@@ -611,9 +622,14 @@ playergroup:AddSlider("WalkSpeed", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentwalkspeed = Value
+		-- Apply immediately to character
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+			LocalPlayer.Character.Humanoid.WalkSpeed = Value
+		end
 	end,
 })
 
+-- Modified JumpPower slider to apply immediately
 playergroup:AddSlider("JumpPower", {
 	Text = "JumpPower",
 	Default = 50,
@@ -622,9 +638,14 @@ playergroup:AddSlider("JumpPower", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentjumppower = Value
+		-- Apply immediately to character
+		if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+			LocalPlayer.Character.Humanoid.JumpPower = Value
+		end
 	end,
 })
 
+-- Modified Gravity slider to apply immediately
 playergroup:AddSlider("Gravity", {
 	Text = "Gravity",
 	Default = 196.2,
@@ -633,6 +654,8 @@ playergroup:AddSlider("Gravity", {
 	Rounding = 1,
 	Callback = function(Value)
 		currentgravity = Value
+		-- Apply immediately to workspace
+		workspace.Gravity = Value
 	end,
 })
 
@@ -767,7 +790,6 @@ playergroup:AddCheckbox("XRay", {
 	Callback = function(Value)
 		xrayenabled = Value
 		if Value then
-			-- Apply X-Ray to all parts
 			for _, obj in pairs(workspace:GetDescendants()) do
 				if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
 					originaltransparencies[obj] = obj.Transparency
@@ -775,7 +797,6 @@ playergroup:AddCheckbox("XRay", {
 				end
 			end
 		else
-			-- Restore all original transparencies when disabled
 			for obj, transparency in pairs(originaltransparencies) do
 				if obj and obj.Parent then
 					obj.Transparency = transparency
@@ -805,6 +826,7 @@ playergroup:AddCheckbox("InfiniteJump", {
 		Toggles.InfiniteJump:SetValue(not Toggles.InfiniteJump.Value)
 	end,
 })
+
 
 local flygroup = Tabs.Main:AddRightGroupbox("Fly", "plane")
 
@@ -1066,6 +1088,7 @@ flygroup:AddSlider("FlySpeed", {
 	end,
 })
 
+-- Modified CharacterAdded connection to apply properties and reset fly
 Players.LocalPlayer.CharacterAdded:Connect(function(character)
 	wait(0.7)
 	nowe = false
@@ -1076,6 +1099,8 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character)
 			character.Animate.Disabled = false
 		end
 	end
+	-- Apply saved walkspeed, jumppower, and gravity
+	applycharacterproperties(character)
 end)
 
 local statusgroup = Tabs.Main:AddLeftGroupbox("Status", "activity")
@@ -1845,7 +1870,6 @@ menugroup:AddCheckbox("OptOutLog", {
 	end,
 })
 
--- Adding ThemeManager and SaveManager configuration
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 
@@ -1858,7 +1882,6 @@ SaveManager:SetFolder("MyScriptHub/specific-game")
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 
--- Adding Fun tab with animations and music player
 local animationstabbox = Tabs["Fun"]:AddLeftTabbox()
 local animtab = animationstabbox:AddTab("Anim")
 local animconfigtab = animationstabbox:AddTab("Config")
@@ -2142,159 +2165,113 @@ ExampleGroup:AddDropdown("ExampleList",{
 	Searchable=true
 })
 
-ExampleGroup:AddButton({Text="Play Example",Func=function()
-	local val=Options.ExampleList.Value
-	if not val then Library:Notify("Select a song",3) return end
-	local id=val:match("%((%d+)%)")
-	if id then PlaySound(id,val) end
-end})
+ExampleGroup:AddButton({
+	Text = "Play Example Song",
+	Func = function()
+		local val = Options.ExampleList.Value
+		if not val then Library:Notify("Select a song first", 3) return end
+		local id = val:match("%((%d+)%)")
+		if id then PlaySound(id, val) end
+	end,
+})
 
-ExampleGroup:AddButton({Text="Stop Example",Func=function()
-	if CurrentSound then CurrentSound:Destroy() CurrentSound=nil Library:Notify("Stopped music",3)
-	else Library:Notify("No music is playing",3) end
-end})
+ExampleGroup:AddButton({
+	Text = "Play Random Example",
+	Func = function()
+		local songs = LoadSongs(ExampleFolder)
+		if #songs == 0 then Library:Notify("No example songs found", 3) return end
+		local pick = songs[math.random(1, #songs)]
+		local id = pick:match("%((%d+)%)")
+		if id then PlaySound(id, pick) end
+	end,
+})
 
-ExampleGroup:AddCheckbox("LoopExample",{Text="Loop Example",Default=false,Callback=function(val)
-	if CurrentSound then CurrentSound.Looped=val end
-	Library:Notify("Example Loop "..(val and "Enabled" or "Disabled"),3)
-end})
-
--- Adding player event connections for ESP and highlights
 Players.PlayerAdded:Connect(function(player)
 	if espenabled then
 		createesp(player)
 	end
 	if outlineenabled then
-		playerconnections[player.UserId] = {}
 		setupplayerhighlight(player)
 	end
-	
-	player.CharacterAdded:Connect(function(character)
-		if espenabled then
-			createesp(player)
-		end
-		if outlineenabled then
-			task.wait(0.1)
-			applyhighlighttocharacter(player, character)
-		end
-	end)
 end)
 
-for _, player in pairs(Players:GetPlayers()) do
-	if player ~= LocalPlayer then
-		player.CharacterAdded:Connect(function(character)
-			if espenabled then
-				task.wait(0.1)
-				if not espobjects[player] then
-					createesp(player)
-				end
-			end
-			if outlineenabled then
-				task.wait(0.1)
-				applyhighlighttocharacter(player, character)
-			end
-		end)
-	end
-end
-
-Library:OnUnload(function()
-	for player, _ in pairs(espobjects) do
-		removeesp(player)
-	end
-	
-	for _, player in pairs(Players:GetPlayers()) do
-		removehighlight(player)
-	end
-	
-	RunService:UnbindFromRenderStep("Tracers")
-	RunService:UnbindFromRenderStep("SkeletonESP")
-	
-	if fovgui then
-		fovgui:Destroy()
-	end
-	
-	for _, line in ipairs(tracerlines) do
-		line:Destroy()
-	end
-	
-	for _, line in ipairs(skeletonlines) do
-		line:Destroy()
-	end
-	
-	getgenv().unxshared.isloaded = false
-end)
-
-task.spawn(function()
-	while true do
-		task.wait()
-		local character = LocalPlayer.Character
-		if character and character:FindFirstChild("Humanoid") then
-			character.Humanoid.WalkSpeed = currentwalkspeed
-			character.Humanoid.JumpPower = currentjumppower
-		end
-		workspace.Gravity = currentgravity
-	end
+Players.PlayerRemoving:Connect(function(player)
+	removeesp(player)
+	removehighlight(player)
 end)
 
 RunService.RenderStepped:Connect(function()
 	if espenabled then
 		updateesp()
 	end
-	
-	if outlineenabled then
-		for userid, highlight in pairs(activehighlights) do
-			if highlight then
-				highlight.OutlineColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinecolor
-				highlight.FillColor = espconfig.rainbowoutline and getrainbowcolor() or espconfig.outlinefillcolor
-			end
-		end
+	if aimlockenabled then
+		updateaimlock()
 	end
-	
-	updateaimlock()
-	updatefovcircle()
-end)
-
-UserInputService.JumpRequest:Connect(function()
-	if infinitejumpenabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-		LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	if showfov then
+		updatefovcircle()
 	end
 end)
 
-RunService.Heartbeat:Connect(function()
-	if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-		LocalPlayer.Character.Humanoid.WalkSpeed = currentwalkspeed
-		LocalPlayer.Character.Humanoid.JumpPower = currentjumppower
+LocalPlayer.CharacterAdded:Connect(function(character)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if humanoid then
+		humanoid.WalkSpeed = currentwalkspeed
+		humanoid.JumpPower = currentjumppower
 		workspace.Gravity = currentgravity
 		
-		if noclipenabled then
-			for _, part in pairs(LocalPlayer.Character:GetChildren()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
-			end
+		if noaccelerationenabled then
+			humanoid.WalkSpeed = currentwalkspeed
+			humanoid.JumpPower = currentjumppower
 		end
 	end
 	
-	if xrayenabled then
-		for _, obj in pairs(workspace:GetDescendants()) do
-			if obj:IsA("BasePart") and not obj:IsDescendantOf(LocalPlayer.Character) then
-				if not originaltransparencies[obj] then
-					originaltransparencies[obj] = obj.Transparency
-				end
-				obj.Transparency = 0.6
+	if noclipenabled then
+		for _, part in pairs(character:GetChildren()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
 			end
 		end
 	end
 end)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/Invite.lua",true))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/not-gato/UNX/refs/heads/main/Modules/v2/API.lua",true))()
+if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+	local humanoid = LocalPlayer.Character.Humanoid
+	humanoid.WalkSpeed = currentwalkspeed
+	humanoid.JumpPower = currentjumppower
+	workspace.Gravity = currentgravity
+end
 
-Library.ToggleKeybind = Options.MenuKeybind
+-- Infinite Jump lel
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if infinitejumpenabled and input.KeyCode == Enum.KeyCode.Space and not gameProcessed then
+		local character = LocalPlayer.Character
+		if character and character:FindFirstChild("Humanoid") then
+			character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		end
+	end
+end)
 
-local player = Players.LocalPlayer
-local exec = (type(identifyexecutor) == "function" and identifyexecutor()) or "Not Possible To Fetch Executor Name, Your Executor Probably Doesn't Support identifyexecutor()"
+UserInputService.InputBegan:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.F and Toggles.FlyToggle then
+		Toggles.FlyToggle:SetValue(not Toggles.FlyToggle.Value)
+	end
+end)
 
-if not player then
-	player = Players.PlayerAdded:Wait()
+Options.MenuKeybind:OnChanged(function()
+	Window:Toggle()
+end)
+
+SaveManager:LoadAutoloadConfig()
+Library:Notify({
+	Title = "UNXHub Loaded",
+	Description = "Welcome, " .. LocalPlayer.Name .. "! Use the menu to explore features.",
+	Time = 5,
+})
+
+Library:OnUnload(function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+end)
+
+if debugmode then
+	print("[DEBUG]: UNXHub fully loaded!")
 end
