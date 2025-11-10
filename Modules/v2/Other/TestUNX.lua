@@ -2268,6 +2268,10 @@ Library:Notify({
 	Time = 5,
 })
 
+Library:OnUnload(function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
+end)
+
 if debugmode then
 	print("[DEBUG]: UNXHub fully loaded!")
 end
