@@ -6,8 +6,9 @@
 # **UNXHub**
 *A Roblox Utility Tool*
 
-**UNXHub Loader**
-```lua
+## **UNXHub Loader**
+
+```luau
 loadstring(game:HttpGet("https://apigetunx.vercel.app/UNX.lua",true))()
 ```
 
