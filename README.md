@@ -1,7 +1,10 @@
 > [!WARNING]
 > Read **https://getunx.qzz.io/tos.html** for more information on our **Terms Of Service**
 
+---
+
 # UNXHub
+> *An Roblox Utility Tool*
 
 **Version:** 2.2.2
 **Tested Executors:** Ronix (1.1.3b), Codex, Delta, F^W (FrostWare 1.1.3b)
