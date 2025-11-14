@@ -20,7 +20,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "UNXHub",
-    Footer = "Beta UNXHub | This Will Change On The Future.",
+    Footer = "Version: " .. (getgenv().unxshared and getgenv().unxshared.version or "Unknown") .. ", Game: " .. (getgenv().unxshared and getgenv().unxshared.gamename or "Unknown") .. ", Player: " .. (getgenv().unxshared and getgenv().unxshared.playername or "Unknown"),
     Icon = 123333102279908,
     NotifySide = "Right",
     ShowCustomCursor = true,
