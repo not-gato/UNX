@@ -1,3 +1,6 @@
+> [!NOTE]
+> Read **https://getunx.qzz.io/tos.html**
+
 # UNXHub
 
 **Version:** 2.2.2
