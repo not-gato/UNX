@@ -20,7 +20,7 @@
 
 ---
 
-> [!ABOUT]
+> [!NOTE]
 > UNXHub began as a personal project to explore LUAU and experiment with new ideas.  
 It is **fully open-source** — you may use it, modify it, or integrate parts into your own work.  
 **No credit is required**, though always appreciated.
