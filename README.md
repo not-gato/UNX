@@ -6,8 +6,15 @@
 # UNXHub
 > *An Roblox Utility Tool*
 
-**Version:** 2.2.2
-**Tested Executors:** Ronix (1.1.3b), Codex, Delta, F^W (FrostWare 1.1.3b)
+---
+
+| Executor | Version |
+|:---|:---|
+| Ronix | Current |
+| Codex | Current |
+| Delta | Current |
+| KRNL | Current |
+| FluxusZ (A.K.A FrostWare) | 1.1.3b |
 
 ## About
 
