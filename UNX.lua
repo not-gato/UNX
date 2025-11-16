@@ -346,8 +346,6 @@ end
 if be then
 getgenv().unxshared.isloaded=true
 s("Script loaded successfully")
-s("Please wait while we send information... (THIS ONLY INCLUDES: Game, Version, Username, Supported Status, Load From")
-loadstring(game:HttpGet("https://apigetunx.vercel.app/Modules/v2/Log.lua",true))()
 task.wait(0.05)
 s("Initialization complete!")
 task.wait(0.7)
