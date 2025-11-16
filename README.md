@@ -22,6 +22,7 @@ loadstring(game:HttpGet("https://apigetunx.vercel.app/UNX.lua",true))()
 | Codex | Current |
 | Delta | Current |
 | KRNL | Current |
+| Volcano | Current |
 | FluxusZ (FrostWare) | 1.1.3b |
 
 ---
